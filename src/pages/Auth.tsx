@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import cofinityLogo from "@/assets/cofinity-logo.png";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
@@ -72,10 +73,8 @@ const Auth = () => {
       <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full animate-glow-pulse" style={{ background: "radial-gradient(circle, hsl(230 80% 60% / 0.08), transparent 70%)" }} />
 
       <div className="w-full max-w-md glass rounded-2xl p-8 relative">
-        <div className="flex items-center gap-2 justify-center mb-8">
-          <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
-            <span className="text-primary-foreground font-bold">C</span>
-          </div>
+        <div className="flex items-center gap-2 justify-center mb-8 cursor-pointer" onClick={() => navigate("/")}>
+          <img src={cofinityLogo} alt="Cofinity" className="w-10 h-10 object-contain" />
           <span className="text-2xl font-bold text-foreground">Cofinity</span>
         </div>
 
