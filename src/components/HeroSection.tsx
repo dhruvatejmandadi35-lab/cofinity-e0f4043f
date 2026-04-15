@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import DashboardMockup from "./DashboardMockup";
-import cofinityLogo from "@/assets/cofinity-logo.png";
 import { ArrowRight, Zap } from "lucide-react";
 
 const HeroSection = () => {
@@ -130,20 +129,6 @@ const HeroSection = () => {
             Cofinity connects teams, communication, and events into one powerful platform — designed for companies, schools, and communities.
           </p>
 
-          {/* Social proof numbers */}
-          <div className="flex gap-8 animate-fade-in-up-delay-1">
-            {[
-              { value: "500+", label: "Organizations" },
-              { value: "12k+", label: "Active members" },
-              { value: "98%", label: "Satisfaction" },
-            ].map((stat) => (
-              <div key={stat.label}>
-                <div className="text-2xl font-bold gradient-text">{stat.value}</div>
-                <div className="text-xs text-muted-foreground mt-0.5">{stat.label}</div>
-              </div>
-            ))}
-          </div>
-
           {/* CTA buttons */}
           <div className="flex flex-wrap gap-4 animate-fade-in-up-delay-2">
             <Button
@@ -164,11 +149,6 @@ const HeroSection = () => {
             </Button>
           </div>
 
-          {/* Logo lockup */}
-          <div className="flex items-center gap-2 animate-fade-in-up-delay-3">
-            <img src={cofinityLogo} alt="" className="w-5 h-5 opacity-50" />
-            <span className="text-xs text-muted-foreground">Trusted by forward-thinking teams worldwide</span>
-          </div>
         </div>
 
         {/* Right column — 3D mockup */}
