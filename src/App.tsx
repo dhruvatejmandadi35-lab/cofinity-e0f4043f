@@ -21,6 +21,7 @@ import PublicExplore from "./pages/PublicExplore.tsx";
 import PublicEvents from "./pages/PublicEvents.tsx";
 import Pricing from "./pages/Pricing.tsx";
 import Billing from "./pages/app/Billing.tsx";
+import BillingSuccess from "./pages/app/BillingSuccess.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -50,6 +51,7 @@ const App = () => (
             <Route path="explore" element={<Explore />} />
             <Route path="profile" element={<Profile />} />
             <Route path="billing" element={<Billing />} />
+            <Route path="billing/success" element={<BillingSuccess />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

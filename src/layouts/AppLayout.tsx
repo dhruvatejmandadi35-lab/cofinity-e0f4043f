@@ -16,6 +16,7 @@ const routeNames: Record<string, string> = {
   "/app/explore": "Explore",
   "/app/profile": "Profile",
   "/app/billing": "Billing & Plans",
+  "/app/billing/success": "Upgrade Successful",
 };
 
 function getBreadcrumb(pathname: string): { label: string; path?: string }[] {
