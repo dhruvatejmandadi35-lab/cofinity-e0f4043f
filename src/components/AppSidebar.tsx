@@ -8,6 +8,7 @@ import {
   Lock,
   Building2,
   Users,
+  Zap,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useNavigate } from "react-router-dom";
@@ -239,6 +240,14 @@ export function AppSidebar() {
             </div>
           </div>
         )}
+        <Button
+          variant="ghost"
+          className="w-full justify-start text-muted-foreground hover:text-primary text-sm gap-2"
+          onClick={() => navigate("/app/billing")}
+        >
+          <Zap className="w-4 h-4 flex-shrink-0" />
+          {!collapsed && "Billing & Plans"}
+        </Button>
         <Button
           variant="ghost"
           className="w-full justify-start text-muted-foreground hover:text-foreground text-sm gap-2"

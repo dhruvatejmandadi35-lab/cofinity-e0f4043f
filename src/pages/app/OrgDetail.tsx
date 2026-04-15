@@ -8,10 +8,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Users, Globe, Lock, Building2, ChevronRight } from "lucide-react";
+import { Plus, Users, Globe, Lock, Building2, ChevronRight, Zap } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import UpgradeModal from "@/components/UpgradeModal";
 import type { Database } from "@/integrations/supabase/types";
+
+const FREE_TEAM_LIMIT = 3;
 
 type TeamPrivacy = Database["public"]["Enums"]["team_privacy"];
 
@@ -37,6 +40,7 @@ const OrgDetail = () => {
   const [deptOpen, setDeptOpen] = useState(false);
   const [deptName, setDeptName] = useState("");
   const [teamOpen, setTeamOpen] = useState(false);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [teamName, setTeamName] = useState("");
   const [teamDesc, setTeamDesc] = useState("");
   const [teamDeptId, setTeamDeptId] = useState("");
@@ -157,6 +161,30 @@ const OrgDetail = () => {
   const totalTeams = teams?.length || 0;
   const totalDepts = departments?.length || 0;
 
+  // Plan check: if subscription is not pro/enterprise, enforce free team limit
+  const { data: subscription } = useQuery({
+    queryKey: ["org-subscription", orgId],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("subscriptions")
+        .select("plan")
+        .eq("org_id", orgId!)
+        .maybeSingle();
+      return data as { plan: string } | null;
+    },
+    enabled: !!orgId && isOwner,
+  });
+  const isPro = subscription?.plan === "pro" || subscription?.plan === "enterprise";
+  const atTeamLimit = !isPro && totalTeams >= FREE_TEAM_LIMIT;
+
+  const handleAddTeamClick = () => {
+    if (atTeamLimit) {
+      setUpgradeOpen(true);
+    } else {
+      setTeamOpen(true);
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in-up">
       {/* Hero Banner */}
@@ -219,12 +247,16 @@ const OrgDetail = () => {
                 </DialogContent>
               </Dialog>
 
+              <Button
+                size="sm"
+                className="gradient-primary text-white border-0"
+                onClick={handleAddTeamClick}
+              >
+                {atTeamLimit ? <Zap className="w-4 h-4 mr-1" /> : <Plus className="w-4 h-4 mr-1" />}
+                Team
+              </Button>
+
               <Dialog open={teamOpen} onOpenChange={setTeamOpen}>
-                <DialogTrigger asChild>
-                  <Button size="sm" className="gradient-primary text-white border-0">
-                    <Plus className="w-4 h-4 mr-1" /> Team
-                  </Button>
-                </DialogTrigger>
                 <DialogContent className="glass border-border">
                   <DialogHeader><DialogTitle>Create Team</DialogTitle></DialogHeader>
                   <form
@@ -390,6 +422,12 @@ const OrgDetail = () => {
           })}
         </div>
       )}
+
+      <UpgradeModal
+        open={upgradeOpen}
+        onClose={() => setUpgradeOpen(false)}
+        reason={`Free plan is limited to ${FREE_TEAM_LIMIT} teams per organization. Upgrade to Pro for unlimited.`}
+      />
     </div>
   );
 };

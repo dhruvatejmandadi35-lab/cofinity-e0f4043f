@@ -19,6 +19,8 @@ import Explore from "./pages/app/Explore.tsx";
 import Profile from "./pages/app/Profile.tsx";
 import PublicExplore from "./pages/PublicExplore.tsx";
 import PublicEvents from "./pages/PublicEvents.tsx";
+import Pricing from "./pages/Pricing.tsx";
+import Billing from "./pages/app/Billing.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -34,6 +36,7 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/explore" element={<PublicExplore />} />
           <Route path="/events" element={<PublicEvents />} />
+          <Route path="/pricing" element={<Pricing />} />
           <Route path="/app" element={<AppLayout />}>
             <Route index element={<Dashboard />} />
             <Route path="organizations" element={<Organizations />} />
@@ -46,6 +49,7 @@ const App = () => (
             <Route path="calendar" element={<CalendarView />} />
             <Route path="explore" element={<Explore />} />
             <Route path="profile" element={<Profile />} />
+            <Route path="billing" element={<Billing />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
