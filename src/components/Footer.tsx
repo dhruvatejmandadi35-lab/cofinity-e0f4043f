@@ -1,3 +1,5 @@
+import cofinityLogo from "@/assets/cofinity-logo.png";
+
 const Footer = () => {
   const links = {
     Product: ["Features", "Pricing", "Security", "Changelog"],
@@ -12,9 +14,7 @@ const Footer = () => {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-sm">C</span>
-              </div>
+              <img src={cofinityLogo} alt="Cofinity" className="w-8 h-8 object-contain" />
               <span className="text-lg font-bold text-foreground">Cofinity</span>
             </div>
             <p className="text-sm text-muted-foreground">

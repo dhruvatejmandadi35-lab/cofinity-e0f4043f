@@ -2,6 +2,7 @@ import { LayoutDashboard, Building2, Users, CalendarDays, Globe, UserCircle, Log
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import cofinityLogo from "@/assets/cofinity-logo.png";
 import {
   Sidebar,
   SidebarContent,
@@ -37,10 +38,8 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarContent>
-        <div className="p-4 flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center flex-shrink-0">
-            <span className="text-primary-foreground font-bold text-sm">C</span>
-          </div>
+        <div className="p-4 flex items-center gap-2 cursor-pointer" onClick={() => navigate("/app")}>
+          <img src={cofinityLogo} alt="Cofinity" className="w-8 h-8 object-contain flex-shrink-0" />
           {!collapsed && <span className="text-lg font-bold text-foreground">Cofinity</span>}
         </div>
 
