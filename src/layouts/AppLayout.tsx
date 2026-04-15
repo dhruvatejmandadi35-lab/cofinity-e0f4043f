@@ -2,6 +2,7 @@ import { Outlet, Navigate } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { useAuthReady } from "@/hooks/useAuthReady";
+import cofinityLogo from "@/assets/cofinity-logo.png";
 
 const AppLayout = () => {
   const { user, isReady } = useAuthReady();
@@ -9,7 +10,7 @@ const AppLayout = () => {
   if (!isReady) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="w-8 h-8 rounded-lg gradient-primary animate-pulse" />
+        <img src={cofinityLogo} alt="Loading" className="w-12 h-12 animate-pulse" />
       </div>
     );
   }
