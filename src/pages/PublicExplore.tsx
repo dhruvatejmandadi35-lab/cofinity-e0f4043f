@@ -42,7 +42,7 @@ const PublicExplore = () => {
     queryFn: async () => {
       const { data } = await supabase
         .from("organizations")
-        .select("id, name, type, description, slug")
+        .select("id, name, type")
         .order("created_at");
       return data || [];
     },

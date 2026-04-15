@@ -46,7 +46,7 @@ const EventDetail = () => {
   const { data: attendees } = useQuery({
     queryKey: ["event-attendees", eventId],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("event_attendees")
         .select("*, profiles:user_id(display_name, username, avatar_url)")
         .eq("event_id", eventId!);
@@ -60,14 +60,14 @@ const EventDetail = () => {
   const rsvp = useMutation({
     mutationFn: async (status: AttendeeStatus) => {
       if (myAttendance) {
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from("event_attendees")
           .update({ status })
           .eq("event_id", eventId!)
           .eq("user_id", user!.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("event_attendees").insert({
+        const { error } = await (supabase as any).from("event_attendees").insert({
           event_id: eventId!,
           user_id: user!.id,
           status,
