@@ -1,6 +1,9 @@
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 const CTASection = () => {
+  const navigate = useNavigate();
+
   return (
     <section className="py-24 relative">
       <div className="absolute inset-0" style={{ background: "var(--gradient-glow)" }} />
@@ -10,11 +13,10 @@ const CTASection = () => {
             Ready to unify your team?
           </h2>
           <p className="text-muted-foreground text-lg mb-8 max-w-xl mx-auto">
-            Join thousands of organizations already using Cofinity to collaborate, communicate, and grow.
+            Create your organization and start collaborating today — it's free to get started.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
-            <Button variant="hero" size="lg">Start for Free</Button>
-            <Button variant="hero-outline" size="lg">Book a Demo</Button>
+            <Button variant="hero" size="lg" onClick={() => navigate("/auth")}>Start for Free</Button>
           </div>
         </div>
       </div>

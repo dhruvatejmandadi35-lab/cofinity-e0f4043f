@@ -1,7 +1,10 @@
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 import DashboardMockup from "./DashboardMockup";
 
 const HeroSection = () => {
+  const navigate = useNavigate();
+
   return (
     <section className="relative min-h-screen flex items-center overflow-hidden pt-16">
       {/* Background glow */}
@@ -27,21 +30,8 @@ const HeroSection = () => {
           </p>
 
           <div className="flex flex-wrap gap-4 animate-fade-in-up-delay-2">
-            <Button variant="hero" size="lg">Get Started Free</Button>
-            <Button variant="hero-outline" size="lg">Learn More</Button>
-          </div>
-
-          <div className="flex items-center gap-6 pt-2 animate-fade-in-up-delay-2">
-            <div className="flex -space-x-2">
-              {[0, 1, 2, 3].map((i) => (
-                <div key={i} className="w-8 h-8 rounded-full border-2 border-background bg-muted flex items-center justify-center">
-                  <span className="text-[10px] text-muted-foreground">{["JK", "AR", "MP", "SL"][i]}</span>
-                </div>
-              ))}
-            </div>
-            <p className="text-sm text-muted-foreground">
-              <span className="text-foreground font-semibold">2,400+</span> teams already connected
-            </p>
+            <Button variant="hero" size="lg" onClick={() => navigate("/auth")}>Get Started Free</Button>
+            <Button variant="hero-outline" size="lg" onClick={() => document.getElementById("features")?.scrollIntoView({ behavior: "smooth" })}>Learn More</Button>
           </div>
         </div>
 
