@@ -6,49 +6,49 @@
 
 @layer base {
   :root {
-    --background: 225 35% 6%;
+    --background: 228 38% 5%;
     --foreground: 210 40% 96%;
 
-    --card: 225 30% 10%;
+    --card: 228 32% 9%;
     --card-foreground: 210 40% 96%;
 
-    --popover: 225 30% 10%;
+    --popover: 228 32% 9%;
     --popover-foreground: 210 40% 96%;
 
-    --primary: 220 70% 65%;
+    --primary: 220 72% 68%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 250 55% 60%;
+    --secondary: 252 58% 62%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 225 25% 14%;
-    --muted-foreground: 220 15% 55%;
+    --muted: 228 26% 13%;
+    --muted-foreground: 220 15% 52%;
 
-    --accent: 195 75% 65%;
+    --accent: 195 78% 62%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 70% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 225 20% 18%;
-    --input: 225 20% 18%;
-    --ring: 220 70% 65%;
+    --border: 228 22% 16%;
+    --input: 228 22% 16%;
+    --ring: 220 72% 68%;
 
     --radius: 0.75rem;
 
-    --gradient-primary: linear-gradient(135deg, hsl(220 70% 65%), hsl(250 55% 60%));
-    --gradient-hero: linear-gradient(135deg, hsl(220 70% 65%), hsl(250 55% 60%), hsl(195 75% 65%));
-    --gradient-glow: radial-gradient(ellipse at center, hsl(220 70% 65% / 0.12), transparent 70%);
-    --gradient-card: linear-gradient(135deg, hsl(225 30% 12%), hsl(225 30% 8%));
-    --gradient-celestial: radial-gradient(ellipse at 30% 50%, hsl(220 70% 65% / 0.08), hsl(250 55% 60% / 0.05) 50%, transparent 80%);
-    
-    --glass-bg: hsl(225 30% 12% / 0.6);
-    --glass-border: hsl(220 30% 30% / 0.4);
-    --glass-shadow: 0 8px 32px hsl(225 50% 5% / 0.4), 0 0 60px hsl(220 70% 65% / 0.05);
-    
-    --glow-primary: 0 0 25px hsl(220 70% 65% / 0.25), 0 0 60px hsl(220 70% 65% / 0.1);
-    --glow-accent: 0 0 25px hsl(195 75% 65% / 0.25), 0 0 60px hsl(195 75% 65% / 0.1);
-    --glow-celestial: 0 0 40px hsl(220 70% 65% / 0.15), 0 0 80px hsl(250 55% 60% / 0.08);
+    --gradient-primary: linear-gradient(135deg, hsl(220 72% 68%), hsl(252 58% 62%));
+    --gradient-hero: linear-gradient(135deg, hsl(220 72% 68%), hsl(252 58% 62%), hsl(195 78% 62%));
+    --gradient-glow: radial-gradient(ellipse at center, hsl(220 72% 68% / 0.18), transparent 70%);
+    --gradient-card: linear-gradient(135deg, hsl(228 32% 11%), hsl(228 32% 7%));
+    --gradient-celestial: radial-gradient(ellipse at 30% 50%, hsl(220 72% 68% / 0.1), hsl(252 58% 62% / 0.06) 50%, transparent 80%);
+
+    --glass-bg: hsl(228 32% 10% / 0.65);
+    --glass-border: hsl(220 35% 32% / 0.35);
+    --glass-shadow: 0 8px 32px hsl(228 55% 4% / 0.5), 0 0 0 1px hsl(220 35% 32% / 0.15), 0 0 60px hsl(220 72% 68% / 0.04);
+
+    --glow-primary: 0 0 30px hsl(220 72% 68% / 0.3), 0 0 70px hsl(220 72% 68% / 0.12);
+    --glow-accent: 0 0 30px hsl(195 78% 62% / 0.3), 0 0 70px hsl(195 78% 62% / 0.12);
+    --glow-celestial: 0 0 50px hsl(220 72% 68% / 0.18), 0 0 100px hsl(252 58% 62% / 0.1);
   }
 }
 
@@ -64,20 +64,44 @@
 }
 
 @layer utilities {
+  /* === Glassmorphism === */
   .glass {
     background: var(--glass-bg);
-    backdrop-filter: blur(24px) saturate(1.2);
+    backdrop-filter: blur(28px) saturate(1.3);
     border: 1px solid var(--glass-border);
     box-shadow: var(--glass-shadow);
   }
 
   .glass-elevated {
-    background: hsl(225 30% 13% / 0.7);
-    backdrop-filter: blur(30px) saturate(1.3);
-    border: 1px solid hsl(220 30% 35% / 0.3);
-    box-shadow: 0 12px 40px hsl(225 50% 5% / 0.5), 0 0 80px hsl(220 70% 65% / 0.06), inset 0 1px 0 hsl(220 50% 50% / 0.08);
+    background: hsl(228 32% 11% / 0.75);
+    backdrop-filter: blur(32px) saturate(1.4);
+    border: 1px solid hsl(220 35% 36% / 0.28);
+    box-shadow:
+      0 16px 50px hsl(228 55% 4% / 0.6),
+      0 0 0 1px hsl(220 50% 50% / 0.1),
+      0 0 90px hsl(220 72% 68% / 0.07),
+      inset 0 1px 0 hsl(220 60% 70% / 0.1);
   }
 
+  /* Glass with top highlight — simulates light hitting top edge */
+  .glass-highlight {
+    background: var(--glass-bg);
+    backdrop-filter: blur(28px) saturate(1.3);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+    position: relative;
+  }
+  .glass-highlight::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(180deg, hsl(220 60% 70% / 0.06) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* === Gradients === */
   .gradient-primary {
     background: var(--gradient-primary);
   }
@@ -93,6 +117,34 @@
     background-clip: text;
   }
 
+  /* === Gradient Borders === */
+  /* Uses background-clip technique — works with border-radius */
+  .gradient-border-card {
+    background:
+      linear-gradient(hsl(228 32% 10% / 0.8), hsl(228 32% 10% / 0.8)) padding-box,
+      linear-gradient(135deg,
+        hsl(220 72% 68% / 0.5) 0%,
+        hsl(252 58% 62% / 0.25) 50%,
+        hsl(195 78% 62% / 0.15) 100%) border-box;
+    border: 1px solid transparent;
+    backdrop-filter: blur(28px) saturate(1.3);
+    box-shadow:
+      0 8px 32px hsl(228 55% 4% / 0.4),
+      0 0 60px hsl(220 72% 68% / 0.04),
+      inset 0 1px 0 hsl(220 60% 70% / 0.08);
+  }
+
+  .gradient-border-card:hover {
+    background:
+      linear-gradient(hsl(228 32% 11% / 0.85), hsl(228 32% 11% / 0.85)) padding-box,
+      linear-gradient(135deg,
+        hsl(220 72% 68% / 0.75) 0%,
+        hsl(252 58% 62% / 0.45) 50%,
+        hsl(195 78% 62% / 0.3) 100%) border-box;
+    border: 1px solid transparent;
+  }
+
+  /* === Glows === */
   .glow-primary {
     box-shadow: var(--glow-primary);
   }
@@ -105,6 +157,83 @@
     box-shadow: var(--glow-celestial);
   }
 
+  /* === Mesh Grid Background === */
+  .mesh-grid {
+    background-image:
+      linear-gradient(hsl(220 72% 68% / 0.055) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(220 72% 68% / 0.055) 1px, transparent 1px);
+    background-size: 52px 52px;
+    background-position: center center;
+  }
+
+  /* Fade the mesh grid at edges */
+  .mesh-grid-fade {
+    -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 50%, black 40%, transparent 100%);
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 50%, black 40%, transparent 100%);
+  }
+
+  /* === 3D Card Effects === */
+  /* Static depth card — lift on hover */
+  .depth-card {
+    transform: translateZ(0);
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.4s ease;
+    will-change: transform;
+  }
+
+  .depth-card:hover {
+    transform: translateY(-8px) translateZ(20px) scale(1.01);
+    box-shadow:
+      0 24px 60px hsl(228 55% 4% / 0.55),
+      0 0 50px hsl(220 72% 68% / 0.1),
+      inset 0 1px 0 hsl(220 60% 70% / 0.12);
+  }
+
+  /* JS-driven tilt card — transform controlled via inline style */
+  .tilt-card {
+    transition: transform 0.08s ease, box-shadow 0.3s ease;
+    will-change: transform;
+    transform-style: preserve-3d;
+  }
+
+  .tilt-card:hover {
+    box-shadow:
+      0 24px 60px hsl(228 55% 4% / 0.55),
+      0 0 50px hsl(220 72% 68% / 0.1);
+  }
+
+  /* Tilt inner layer — appears to "float" above card surface */
+  .tilt-inner {
+    transform: translateZ(20px);
+    transform-style: preserve-3d;
+  }
+
+  /* === Shimmer Sweep on Hover === */
+  .shimmer-card {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .shimmer-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      105deg,
+      transparent 40%,
+      hsl(220 72% 68% / 0.07) 50%,
+      transparent 60%
+    );
+    transform: translateX(-100%);
+    transition: transform 0s;
+    pointer-events: none;
+  }
+
+  .shimmer-card:hover::after {
+    transform: translateX(100%);
+    transition: transform 0.6s ease;
+  }
+
+  /* === Floating Animations === */
   .float-animation {
     animation: float 6s ease-in-out infinite;
   }
@@ -117,26 +246,30 @@
     animation: float 8s ease-in-out infinite 1s;
   }
 
-  .depth-card {
-    transform: translateZ(0);
-    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.4s ease;
-  }
-
-  .depth-card:hover {
-    transform: translateY(-6px) translateZ(20px);
-    box-shadow: 0 20px 50px hsl(225 50% 5% / 0.5), 0 0 40px hsl(220 70% 65% / 0.08);
+  /* === Navbar scroll state === */
+  .navbar-scrolled {
+    background: hsl(228 38% 5% / 0.92) !important;
+    backdrop-filter: blur(40px) saturate(1.5) !important;
+    border-bottom: 1px solid hsl(220 35% 32% / 0.45) !important;
+    box-shadow: 0 4px 30px hsl(228 55% 4% / 0.4), 0 0 0 1px hsl(220 35% 32% / 0.1) !important;
   }
 }
 
+/* === Keyframes === */
 @keyframes float {
   0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-12px); }
+  50% { transform: translateY(-14px); }
+}
+
+@keyframes float-alt {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-10px) rotate(1deg); }
 }
 
 @keyframes fade-in-up {
   from {
     opacity: 0;
-    transform: translateY(30px);
+    transform: translateY(32px);
   }
   to {
     opacity: 1;
@@ -145,24 +278,55 @@
 }
 
 @keyframes glow-pulse {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 0.8; }
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.75; }
 }
 
+@keyframes scan-line {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+@keyframes border-spin {
+  0% { --border-angle: 0deg; }
+  100% { --border-angle: 360deg; }
+}
+
+@keyframes shine-sweep {
+  0% { transform: translateX(-100%) skewX(-12deg); opacity: 0; }
+  20% { opacity: 1; }
+  100% { transform: translateX(200%) skewX(-12deg); opacity: 0; }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* === Animation Utility Classes === */
 .animate-fade-in-up {
   animation: fade-in-up 0.8s ease-out forwards;
 }
 
 .animate-fade-in-up-delay-1 {
-  animation: fade-in-up 0.8s ease-out 0.2s forwards;
+  animation: fade-in-up 0.85s ease-out 0.15s forwards;
   opacity: 0;
 }
 
 .animate-fade-in-up-delay-2 {
-  animation: fade-in-up 0.8s ease-out 0.4s forwards;
+  animation: fade-in-up 0.85s ease-out 0.3s forwards;
+  opacity: 0;
+}
+
+.animate-fade-in-up-delay-3 {
+  animation: fade-in-up 0.85s ease-out 0.45s forwards;
   opacity: 0;
 }
 
 .animate-glow-pulse {
   animation: glow-pulse 3s ease-in-out infinite;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.5s ease-out forwards;
 }
