@@ -46,7 +46,7 @@ const EventDetail = () => {
   const { data: attendees } = useQuery({
     queryKey: ["event-attendees", eventId],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("event_attendees")
         .select("*, profiles:user_id(display_name, username, avatar_url)")
         .eq("event_id", eventId!);
