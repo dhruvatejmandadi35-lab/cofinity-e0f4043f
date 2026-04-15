@@ -12,8 +12,13 @@ import OrgDetail from "./pages/app/OrgDetail.tsx";
 import Teams from "./pages/app/Teams.tsx";
 import TeamWorkspace from "./pages/app/TeamWorkspace.tsx";
 import Events from "./pages/app/Events.tsx";
+import EventCreate from "./pages/app/EventCreate.tsx";
+import EventDetail from "./pages/app/EventDetail.tsx";
+import CalendarView from "./pages/app/CalendarView.tsx";
 import Explore from "./pages/app/Explore.tsx";
 import Profile from "./pages/app/Profile.tsx";
+import PublicExplore from "./pages/PublicExplore.tsx";
+import PublicEvents from "./pages/PublicEvents.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -27,6 +32,8 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/explore" element={<PublicExplore />} />
+          <Route path="/events" element={<PublicEvents />} />
           <Route path="/app" element={<AppLayout />}>
             <Route index element={<Dashboard />} />
             <Route path="organizations" element={<Organizations />} />
@@ -34,6 +41,9 @@ const App = () => (
             <Route path="teams" element={<Teams />} />
             <Route path="teams/:teamId" element={<TeamWorkspace />} />
             <Route path="events" element={<Events />} />
+            <Route path="events/create" element={<EventCreate />} />
+            <Route path="events/:eventId" element={<EventDetail />} />
+            <Route path="calendar" element={<CalendarView />} />
             <Route path="explore" element={<Explore />} />
             <Route path="profile" element={<Profile />} />
           </Route>
