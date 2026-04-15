@@ -42,7 +42,7 @@ const features = [
 const FeaturesSection = () => {
   return (
     <section id="features" className="py-24 relative">
-      <div className="absolute inset-0" style={{ background: "var(--gradient-glow)" }} />
+      <div className="absolute inset-0" style={{ background: "var(--gradient-celestial)" }} />
       <div className="container mx-auto px-6 relative">
         <div className="text-center mb-16">
           <span className="inline-block px-4 py-1.5 rounded-full text-xs font-medium border border-primary/30 text-primary bg-primary/5 mb-4">
@@ -56,13 +56,14 @@ const FeaturesSection = () => {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {features.map((feature) => (
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6" style={{ perspective: "1000px" }}>
+          {features.map((feature, i) => (
             <div
               key={feature.title}
-              className="group glass rounded-2xl p-6 hover:border-primary/30 transition-all duration-300 hover:-translate-y-1"
+              className="group glass depth-card rounded-2xl p-6 hover:border-primary/30 transition-all duration-300"
+              style={{ animationDelay: `${i * 0.1}s` }}
             >
-              <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${feature.gradient} flex items-center justify-center mb-4 group-hover:shadow-lg transition-shadow`}>
+              <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${feature.gradient} flex items-center justify-center mb-4 group-hover:glow-primary transition-shadow`}>
                 <feature.icon className="w-6 h-6 text-primary-foreground" />
               </div>
               <h3 className="text-lg font-semibold text-foreground mb-2">{feature.title}</h3>
