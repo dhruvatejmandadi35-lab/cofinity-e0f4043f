@@ -34,14 +34,12 @@ const Auth = () => {
         if (error) throw error;
         navigate("/app");
       } else {
-        const { error: signUpError } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: { username, display_name: username },
-          },
+        // Use admin edge function to create user with email pre-confirmed
+        const res = await supabase.functions.invoke("signup", {
+          body: { email, password, username },
         });
-        if (signUpError) throw signUpError;
+        if (res.error) throw new Error(res.error.message);
+        if (res.data?.error) throw new Error(res.data.error);
         const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
         if (signInError) throw signInError;
         navigate("/app");
