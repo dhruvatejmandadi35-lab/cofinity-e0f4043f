@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import cofinityLogo from "@/assets/cofinity-logo.png";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { Button } from "@/components/ui/button";
@@ -16,14 +16,19 @@ const Auth = () => {
   const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const { user, isReady } = useAuthReady();
 
+  // Safe redirect: only allow same-origin paths starting with "/"
+  const rawRedirect = searchParams.get("redirect");
+  const redirectTo = rawRedirect && rawRedirect.startsWith("/") && !rawRedirect.startsWith("//") ? rawRedirect : "/app";
+
   useEffect(() => {
     if (isReady && user) {
-      navigate("/app", { replace: true });
+      navigate(redirectTo, { replace: true });
     }
-  }, [isReady, user, navigate]);
+  }, [isReady, user, navigate, redirectTo]);
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,20 +37,20 @@ const Auth = () => {
       if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        navigate("/app");
+        navigate(redirectTo);
       } else {
         const { error: signUpError } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/app`,
+            emailRedirectTo: `${window.location.origin}${redirectTo}`,
             data: { username, display_name: username },
           },
         });
         if (signUpError) throw signUpError;
         const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
         if (signInError) throw signInError;
-        navigate("/app");
+        navigate(redirectTo);
       }
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -58,7 +63,7 @@ const Auth = () => {
     setLoading(true);
     try {
       const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin + "/app",
+        redirect_uri: window.location.origin + redirectTo,
       });
       if (result.error) {
         toast({ title: "Error", description: String(result.error), variant: "destructive" });
