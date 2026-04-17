@@ -88,131 +88,147 @@ const Billing = () => {
   };
 
   return (
-    <div className="max-w-3xl space-y-8 animate-fade-in-up">
-      <div>
-        <h1 className="text-3xl font-bold gradient-text">Billing & Plans</h1>
-        <p className="text-muted-foreground text-sm mt-1">Manage subscriptions for your organizations.</p>
-      </div>
-
-      {canceled && (
-        <div className="flex items-center gap-3 px-5 py-3 rounded-xl bg-amber-500/10 border border-amber-500/25 text-sm text-amber-300">
-          <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-          Checkout was canceled — no charge was made.
+    <>
+      <PaymentTestModeBanner />
+      <div className="max-w-3xl space-y-8 animate-fade-in-up">
+        <div>
+          <h1 className="text-3xl font-bold gradient-text">Billing & Plans</h1>
+          <p className="text-muted-foreground text-sm mt-1">Manage subscriptions for your organizations.</p>
         </div>
-      )}
 
-      {/* Billing interval toggle */}
-      <div className="flex items-center gap-3 text-sm">
-        <span className={interval !== "year" ? "text-foreground font-medium" : "text-muted-foreground"}>Monthly</span>
-        <button
-          onClick={() => setInterval(interval === "year" ? "month" : "year")}
-          className={`relative w-10 h-5 rounded-full transition-colors ${interval === "year" ? "bg-primary" : "bg-muted"}`}
-        >
-          <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${interval === "year" ? "translate-x-5" : "translate-x-0.5"}`} />
-        </button>
-        <span className={interval === "year" ? "text-foreground font-medium" : "text-muted-foreground"}>
-          Annual
-          <span className="ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-green-500/20 text-green-400 border border-green-500/30">Save 25%</span>
-        </span>
-      </div>
+        {canceled && (
+          <div className="flex items-center gap-3 px-5 py-3 rounded-xl bg-amber-500/10 border border-amber-500/25 text-sm text-amber-300">
+            <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+            Checkout was canceled — no charge was made.
+          </div>
+        )}
 
-      {/* Org subscription cards */}
-      {isLoading ? (
-        <div className="space-y-3">{[1, 2].map((i) => <div key={i} className="glass rounded-xl p-6 h-20 animate-pulse" />)}</div>
-      ) : orgs && orgs.length > 0 ? (
-        <div className="space-y-4">
-          {orgs.map((org) => {
-            const sub = getSubForOrg(org.id);
-            const planKey = (sub?.plan ?? "free") as string;
-            const meta = planMeta[planKey] || planMeta.free;
-            const Icon = meta.icon;
-            const isPaid = planKey !== "free";
-            const periodEnd = sub?.current_period_end ? new Date(sub.current_period_end).toLocaleDateString() : null;
+        <div className="flex items-center gap-3 text-sm">
+          <span className={interval !== "year" ? "text-foreground font-medium" : "text-muted-foreground"}>Monthly</span>
+          <button
+            onClick={() => setInterval(interval === "year" ? "month" : "year")}
+            className={`relative w-10 h-5 rounded-full transition-colors ${interval === "year" ? "bg-primary" : "bg-muted"}`}
+          >
+            <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${interval === "year" ? "translate-x-5" : "translate-x-0.5"}`} />
+          </button>
+          <span className={interval === "year" ? "text-foreground font-medium" : "text-muted-foreground"}>
+            Annual
+            <span className="ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-green-500/20 text-green-400 border border-green-500/30">Save 25%</span>
+          </span>
+        </div>
 
-            return (
-              <div key={org.id} className="glass rounded-xl p-5 space-y-4">
-                <div className="flex items-center gap-3">
-                  <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
-                    style={{ background: "linear-gradient(135deg, hsl(220 72% 68%), hsl(252 58% 62%))" }}
-                  >
-                    {org.name.slice(0, 2).toUpperCase()}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="font-semibold text-foreground">{org.name}</h3>
-                      <Badge className={`text-[11px] ${meta.color}`}>
-                        <Icon className="w-3 h-3 mr-1" />{meta.label}
-                      </Badge>
-                      {sub?.status === "past_due" && (
-                        <Badge className="text-[11px] bg-red-500/20 text-red-400 border-red-500/30">Payment past due</Badge>
-                      )}
+        {isLoading ? (
+          <div className="space-y-3">{[1, 2].map((i) => <div key={i} className="glass rounded-xl p-6 h-20 animate-pulse" />)}</div>
+        ) : orgs && orgs.length > 0 ? (
+          <div className="space-y-4">
+            {orgs.map((org) => {
+              const sub = getSubForOrg(org.id);
+              const planKey = (sub?.plan ?? "free") as string;
+              const meta = planMeta[planKey] || planMeta.free;
+              const Icon = meta.icon;
+              const isPaid = planKey !== "free";
+              const periodEnd = sub?.current_period_end ? new Date(sub.current_period_end).toLocaleDateString() : null;
+
+              return (
+                <div key={org.id} className="glass rounded-xl p-5 space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
+                      style={{ background: "linear-gradient(135deg, hsl(220 72% 68%), hsl(252 58% 62%))" }}
+                    >
+                      {org.name.slice(0, 2).toUpperCase()}
                     </div>
-                    <p className="text-xs text-muted-foreground mt-0.5">{meta.description}</p>
-                    {isPaid && periodEnd && <p className="text-xs text-muted-foreground mt-0.5">Renews {periodEnd}</p>}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-semibold text-foreground">{org.name}</h3>
+                        <Badge className={`text-[11px] ${meta.color}`}>
+                          <Icon className="w-3 h-3 mr-1" />{meta.label}
+                        </Badge>
+                        {sub?.status === "past_due" && (
+                          <Badge className="text-[11px] bg-red-500/20 text-red-400 border-red-500/30">Payment past due</Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">{meta.description}</p>
+                      {isPaid && periodEnd && <p className="text-xs text-muted-foreground mt-0.5">Renews {periodEnd}</p>}
+                    </div>
+                    {isPaid && (
+                      <Badge className="text-xs bg-green-500/15 text-green-400 border-green-500/30 flex-shrink-0">
+                        <Check className="w-3 h-3 mr-1" /> Active
+                      </Badge>
+                    )}
                   </div>
-                  {isPaid && (
-                    <Badge className="text-xs bg-green-500/15 text-green-400 border-green-500/30 flex-shrink-0">
-                      <Check className="w-3 h-3 mr-1" /> Active
-                    </Badge>
+
+                  {!isPaid && (
+                    <div className="grid grid-cols-3 gap-2">
+                      {upgradePlans.map((up) => (
+                        <button
+                          key={up.id}
+                          onClick={() => handleUpgrade(org.id, up.id as any)}
+                          className={`relative rounded-xl border p-3 text-left transition-all hover:border-primary/50 hover:bg-primary/5 ${
+                            up.popular ? "border-primary/40 bg-primary/5" : "border-border"
+                          }`}
+                        >
+                          {up.popular && (
+                            <span className="absolute -top-2 left-3 px-2 py-0.5 rounded-full text-[9px] font-bold gradient-primary text-white">Popular</span>
+                          )}
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <span className="text-base">{up.emoji}</span>
+                            <span className="text-xs font-bold text-foreground">{up.name}</span>
+                          </div>
+                          <p className="text-base font-extrabold text-foreground">
+                            ${interval === "year" ? up.annual : up.monthly}
+                            <span className="text-xs font-normal text-muted-foreground">/mo</span>
+                          </p>
+                          <ul className="mt-2 space-y-0.5">
+                            {up.highlights.slice(0, 3).map((h) => (
+                              <li key={h} className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                <Check className="w-2.5 h-2.5 text-green-400 flex-shrink-0" />{h}
+                              </li>
+                            ))}
+                          </ul>
+                          <div className="mt-2 text-[10px] text-primary font-medium">Upgrade →</div>
+                        </button>
+                      ))}
+                    </div>
                   )}
                 </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="glass rounded-xl p-10 text-center">
+            <Building2 className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+            <p className="text-muted-foreground text-sm">No organizations yet.</p>
+            <Button variant="outline" size="sm" className="mt-3" onClick={() => navigate("/app/organizations")}>Create one</Button>
+          </div>
+        )}
 
-                {!isPaid && (
-                  <div className="grid grid-cols-3 gap-2">
-                    {upgradePlans.map((up) => (
-                      <button
-                        key={up.id}
-                        onClick={() => handleUpgrade(org.id, up.id as any)}
-                        disabled={loadingOrgId === org.id + up.id}
-                        className={`relative rounded-xl border p-3 text-left transition-all hover:border-primary/50 hover:bg-primary/5 ${
-                          up.popular ? "border-primary/40 bg-primary/5" : "border-border"
-                        }`}
-                      >
-                        {up.popular && (
-                          <span className="absolute -top-2 left-3 px-2 py-0.5 rounded-full text-[9px] font-bold gradient-primary text-white">Popular</span>
-                        )}
-                        <div className="flex items-center gap-1.5 mb-1">
-                          <span className="text-base">{up.emoji}</span>
-                          <span className="text-xs font-bold text-foreground">{up.name}</span>
-                        </div>
-                        <p className="text-base font-extrabold text-foreground">
-                          ${interval === "year" ? up.annual : up.monthly}
-                          <span className="text-xs font-normal text-muted-foreground">/mo</span>
-                        </p>
-                        <ul className="mt-2 space-y-0.5">
-                          {up.highlights.slice(0, 3).map((h) => (
-                            <li key={h} className="text-[10px] text-muted-foreground flex items-center gap-1">
-                              <Check className="w-2.5 h-2.5 text-green-400 flex-shrink-0" />{h}
-                            </li>
-                          ))}
-                        </ul>
-                        <div className="mt-2 text-[10px] text-primary font-medium">
-                          {loadingOrgId === org.id + up.id ? "Redirecting..." : "Upgrade →"}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+        <div className="text-center">
+          <Button variant="ghost" className="gap-2 text-muted-foreground hover:text-primary" onClick={() => navigate("/pricing")}>
+            Compare all plans <ArrowRight className="w-4 h-4" />
+          </Button>
         </div>
-      ) : (
-        <div className="glass rounded-xl p-10 text-center">
-          <Building2 className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-          <p className="text-muted-foreground text-sm">No organizations yet.</p>
-          <Button variant="outline" size="sm" className="mt-3" onClick={() => navigate("/app/organizations")}>Create one</Button>
-        </div>
-      )}
-
-      {/* Compare link */}
-      <div className="text-center">
-        <Button variant="ghost" className="gap-2 text-muted-foreground hover:text-primary" onClick={() => navigate("/pricing")}>
-          Compare all plans <ArrowRight className="w-4 h-4" />
-        </Button>
       </div>
-    </div>
+
+      <Dialog open={!!checkout} onOpenChange={(o) => !o && setCheckout(null)}>
+        <DialogContent className="max-w-2xl p-0 overflow-hidden bg-background">
+          <DialogHeader className="px-6 pt-5 pb-3 border-b border-border">
+            <DialogTitle>Complete your upgrade</DialogTitle>
+          </DialogHeader>
+          <div className="max-h-[80vh] overflow-y-auto p-2">
+            {checkout && (
+              <StripeEmbeddedCheckout
+                priceId={checkout.priceId}
+                customerEmail={user?.email}
+                userId={user?.id}
+                orgId={checkout.orgId}
+                returnUrl={`${window.location.origin}/app/billing/success?session_id={CHECKOUT_SESSION_ID}&org_id=${checkout.orgId}`}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
