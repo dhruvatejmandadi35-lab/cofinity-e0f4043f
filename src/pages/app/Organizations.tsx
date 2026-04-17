@@ -16,7 +16,7 @@ import type { Database } from "@/integrations/supabase/types";
 
 type OrgType = Database["public"]["Enums"]["org_type"];
 
-const FREE_ORG_LIMIT = 1;
+const ORG_LIMITS: Record<string, number> = { free: 1, pro: 1, growth: 5, enterprise: Infinity };
 
 const orgTypeColors: Record<string, string> = {
   school: "bg-blue-500/20 text-blue-300 border-blue-500/40",
@@ -48,14 +48,15 @@ const Organizations = () => {
     enabled: !!user,
   });
 
-  // User is on free if none of their orgs have a pro/enterprise subscription
-  const isPro = orgs?.some((o) => {
+  const highestPlan = orgs?.reduce((best, o) => {
     const sub = (o as any).subscriptions;
-    const plan = Array.isArray(sub) ? sub[0]?.plan : sub?.plan;
-    return plan === "pro" || plan === "enterprise";
-  });
-
-  const atOrgLimit = !isPro && (orgs?.length ?? 0) >= FREE_ORG_LIMIT;
+    const plan: string = (Array.isArray(sub) ? sub[0]?.plan : sub?.plan) ?? "free";
+    const rank: Record<string, number> = { free: 0, pro: 1, growth: 2, enterprise: 3 };
+    return (rank[plan] ?? 0) > (rank[best] ?? 0) ? plan : best;
+  }, "free") ?? "free";
+  const isPro = highestPlan !== "free";
+  const orgLimit = ORG_LIMITS[highestPlan] ?? 1;
+  const atOrgLimit = (orgs?.length ?? 0) >= orgLimit;
 
   const handleCreateClick = () => {
     if (atOrgLimit) {
@@ -102,13 +103,15 @@ const Organizations = () => {
         </Button>
       </div>
 
-      {/* Free plan limit banner */}
-      {atOrgLimit && !isPro && (
+      {/* Plan limit banner */}
+      {atOrgLimit && (
         <div className="flex items-center justify-between gap-4 px-5 py-3 rounded-xl bg-amber-500/10 border border-amber-500/25 text-sm">
           <div className="flex items-center gap-2">
             <Zap className="w-4 h-4 text-amber-400 flex-shrink-0" />
             <span className="text-amber-300">
-              Free plan is limited to {FREE_ORG_LIMIT} organization. Upgrade to create more.
+              {highestPlan === "free"
+                ? "Free plan is limited to 1 organization. Upgrade to Pro or Growth to create more."
+                : `Growth plan is limited to 5 organizations. Upgrade to Enterprise for unlimited.`}
             </span>
           </div>
           <Button
@@ -167,7 +170,7 @@ const Organizations = () => {
           {orgs?.map((org) => {
             const sub = (org as any).subscriptions;
             const plan = Array.isArray(sub) ? sub[0]?.plan : sub?.plan ?? "free";
-            const isPro = plan === "pro" || plan === "enterprise";
+            const isPro = ["pro", "growth", "enterprise"].includes(plan);
             return (
               <button
                 key={org.id}
@@ -209,7 +212,11 @@ const Organizations = () => {
       <UpgradeModal
         open={upgradeOpen}
         onClose={() => setUpgradeOpen(false)}
-        reason={`Free plan is limited to ${FREE_ORG_LIMIT} organization. Upgrade to Pro for unlimited.`}
+        reason={
+          highestPlan === "free"
+            ? "Free plan is limited to 1 organization. Upgrade to Pro or Growth."
+            : "Growth plan is limited to 5 organizations. Upgrade to Enterprise for unlimited."
+        }
       />
     </div>
   );

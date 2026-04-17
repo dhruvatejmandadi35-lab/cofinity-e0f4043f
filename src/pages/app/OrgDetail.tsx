@@ -215,7 +215,7 @@ const OrgDetail = () => {
     setTimeout(() => setEmbedCopied(false), 2000);
   };
 
-  // Plan check: if subscription is not pro/enterprise, enforce free team limit
+  // Plan check: enforce free team limit for unpaid plans
   const { data: subscription } = useQuery({
     queryKey: ["org-subscription", orgId],
     queryFn: async () => {
@@ -228,7 +228,7 @@ const OrgDetail = () => {
     },
     enabled: !!orgId && isOwner,
   });
-  const isPro = subscription?.plan === "pro" || subscription?.plan === "enterprise";
+  const isPro = ["pro", "growth", "enterprise"].includes(subscription?.plan ?? "");
   const atTeamLimit = !isPro && totalTeams >= FREE_TEAM_LIMIT;
 
   const handleAddTeamClick = () => {
