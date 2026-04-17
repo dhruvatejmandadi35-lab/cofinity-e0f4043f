@@ -233,7 +233,7 @@ const Pricing = () => {
                   <Button
                     variant={plan.ctaVariant}
                     className={`w-full mb-6 ${plan.popular ? "gradient-primary text-white border-0" : ""}`}
-                    onClick={() => navigate("/auth")}
+                    onClick={goToBilling}
                   >
                     {plan.ctaLabel}
                   </Button>
