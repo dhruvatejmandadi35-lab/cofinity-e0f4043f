@@ -34,19 +34,17 @@ const Auth = () => {
         if (error) throw error;
         navigate("/app");
       } else {
-        const { data: signUpData, error } = await supabase.auth.signUp({
+        const { error: signUpError } = await supabase.auth.signUp({
           email,
           password,
           options: {
             data: { username, display_name: username },
           },
         });
-        if (error) throw error;
-        if (signUpData.session) {
-          navigate("/app");
-        } else {
-          toast({ title: "Account created!", description: "You can now sign in." });
-        }
+        if (signUpError) throw signUpError;
+        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+        if (signInError) throw signInError;
+        navigate("/app");
       }
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
