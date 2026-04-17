@@ -34,12 +34,15 @@ const Auth = () => {
         if (error) throw error;
         navigate("/app");
       } else {
-        // Use admin edge function to create user with email pre-confirmed
-        const res = await supabase.functions.invoke("signup", {
-          body: { email, password, username },
+        const { error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/app`,
+            data: { username, display_name: username },
+          },
         });
-        if (res.error) throw new Error(res.error.message);
-        if (res.data?.error) throw new Error(res.data.error);
+        if (signUpError) throw signUpError;
         const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
         if (signInError) throw signInError;
         navigate("/app");
