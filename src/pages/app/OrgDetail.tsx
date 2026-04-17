@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Users, Globe, Lock, Building2, ChevronRight, Zap } from "lucide-react";
+import { Plus, Users, Globe, Lock, Building2, ChevronRight, Zap, Heart, Code2, Copy } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import UpgradeModal from "@/components/UpgradeModal";
@@ -157,9 +157,63 @@ const OrgDetail = () => {
     onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" }),
   });
 
+  const [showEmbed, setShowEmbed] = useState(false);
+  const [embedCopied, setEmbedCopied] = useState(false);
+
+  const { data: followerCount } = useQuery({
+    queryKey: ["org-followers-count", orgId],
+    queryFn: async () => {
+      const { count } = await (supabase as any)
+        .from("org_followers")
+        .select("*", { count: "exact", head: true })
+        .eq("org_id", orgId!);
+      return count || 0;
+    },
+    enabled: !!orgId,
+  });
+
+  const { data: isFollowing } = useQuery({
+    queryKey: ["is-following", orgId, user?.id],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("org_followers")
+        .select("id")
+        .eq("org_id", orgId!)
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      return !!data;
+    },
+    enabled: !!orgId && !!user,
+  });
+
+  const followOrg = useMutation({
+    mutationFn: async (follow: boolean) => {
+      if (follow) {
+        const { error } = await (supabase as any).from("org_followers").insert({ org_id: orgId!, user_id: user!.id });
+        if (error) throw error;
+      } else {
+        const { error } = await (supabase as any).from("org_followers").delete().eq("org_id", orgId!).eq("user_id", user!.id);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["is-following", orgId, user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["org-followers-count", orgId] });
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
   const isOwner = org?.owner_id === user?.id;
   const totalTeams = teams?.length || 0;
   const totalDepts = departments?.length || 0;
+
+  const embedCode = `<iframe src="${window.location.origin}/embed/org/${orgId}/events" width="100%" height="500" frameborder="0" style="border-radius:12px;"></iframe>`;
+
+  const copyEmbed = () => {
+    navigator.clipboard.writeText(embedCode);
+    setEmbedCopied(true);
+    setTimeout(() => setEmbedCopied(false), 2000);
+  };
 
   // Plan check: if subscription is not pro/enterprise, enforce free team limit
   const { data: subscription } = useQuery({
@@ -335,12 +389,69 @@ const OrgDetail = () => {
         ))}
       </div>
 
-      {/* Placeholder invite */}
-      <div className="flex justify-end">
-        <Button variant="outline" size="sm" className="gap-1.5 text-xs" disabled>
-          <Users className="w-3.5 h-3.5" /> Invite Member (coming soon)
-        </Button>
+      {/* Actions row */}
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center gap-2">
+          {!isOwner && user && (
+            <Button
+              variant={isFollowing ? "secondary" : "outline"}
+              size="sm"
+              className={`gap-1.5 text-xs ${isFollowing ? "text-primary" : ""}`}
+              onClick={() => followOrg.mutate(!isFollowing)}
+              disabled={followOrg.isPending}
+            >
+              <Heart className={`w-3.5 h-3.5 ${isFollowing ? "fill-current" : ""}`} />
+              {isFollowing ? "Following" : "Follow"}
+              {(followerCount ?? 0) > 0 && <span className="ml-0.5 opacity-60">· {followerCount}</span>}
+            </Button>
+          )}
+          {isOwner && (followerCount ?? 0) > 0 && (
+            <span className="text-xs text-muted-foreground flex items-center gap-1">
+              <Heart className="w-3.5 h-3.5 text-primary" />
+              {followerCount} follower{followerCount !== 1 ? "s" : ""}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 text-xs"
+            onClick={() => setShowEmbed(!showEmbed)}
+          >
+            <Code2 className="w-3.5 h-3.5" /> Embed Calendar
+          </Button>
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs" disabled>
+            <Users className="w-3.5 h-3.5" /> Invite Member (coming soon)
+          </Button>
+        </div>
       </div>
+
+      {/* Embed widget */}
+      {showEmbed && (
+        <div className="glass rounded-xl p-4 space-y-3">
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <Code2 className="w-4 h-4 text-primary" /> Embed Public Event Calendar
+          </h3>
+          <p className="text-xs text-muted-foreground">
+            Paste this code into any website to show your public events
+          </p>
+          <div className="relative">
+            <pre className="bg-muted/30 border border-border rounded-lg p-3 text-xs text-foreground/80 overflow-x-auto whitespace-pre-wrap break-all">
+              {embedCode}
+            </pre>
+            <Button
+              size="sm"
+              variant="outline"
+              className="absolute top-2 right-2 h-7 text-xs gap-1"
+              onClick={copyEmbed}
+            >
+              <Copy className="w-3 h-3" />
+              {embedCopied ? "Copied!" : "Copy"}
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Department tree */}
       {departments?.length === 0 ? (

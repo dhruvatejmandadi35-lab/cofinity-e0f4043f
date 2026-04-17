@@ -9,6 +9,9 @@ import {
   Building2,
   Users,
   Zap,
+  BarChart2,
+  Award,
+  Briefcase,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useNavigate } from "react-router-dom";
@@ -35,6 +38,9 @@ const mainNavItems = [
   { title: "Calendar", url: "/app/calendar", icon: CalendarRange, end: false },
   { title: "Events", url: "/app/events", icon: CalendarDays, end: true },
   { title: "Explore", url: "/app/explore", icon: Globe, end: false },
+  { title: "Analytics", url: "/app/analytics", icon: BarChart2, end: false },
+  { title: "Portfolio", url: "/app/portfolio", icon: Award, end: false },
+  { title: "Job Board", url: "/app/jobs", icon: Briefcase, end: false },
   { title: "Profile", url: "/app/profile", icon: UserCircle, end: false },
 ];
 

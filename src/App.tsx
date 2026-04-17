@@ -11,12 +11,18 @@ import Organizations from "./pages/app/Organizations.tsx";
 import OrgDetail from "./pages/app/OrgDetail.tsx";
 import Teams from "./pages/app/Teams.tsx";
 import TeamWorkspace from "./pages/app/TeamWorkspace.tsx";
+import TaskBoard from "./pages/app/TaskBoard.tsx";
+import TeamDocs from "./pages/app/TeamDocs.tsx";
 import Events from "./pages/app/Events.tsx";
 import EventCreate from "./pages/app/EventCreate.tsx";
 import EventDetail from "./pages/app/EventDetail.tsx";
+import CheckIn from "./pages/app/CheckIn.tsx";
 import CalendarView from "./pages/app/CalendarView.tsx";
 import Explore from "./pages/app/Explore.tsx";
 import Profile from "./pages/app/Profile.tsx";
+import Analytics from "./pages/app/Analytics.tsx";
+import Portfolio from "./pages/app/Portfolio.tsx";
+import JobBoard from "./pages/app/JobBoard.tsx";
 import PublicExplore from "./pages/PublicExplore.tsx";
 import PublicEvents from "./pages/PublicEvents.tsx";
 import Pricing from "./pages/Pricing.tsx";
@@ -44,11 +50,17 @@ const App = () => (
             <Route path="organizations/:orgId" element={<OrgDetail />} />
             <Route path="teams" element={<Teams />} />
             <Route path="teams/:teamId" element={<TeamWorkspace />} />
+            <Route path="teams/:teamId/tasks" element={<TaskBoard />} />
+            <Route path="teams/:teamId/docs" element={<TeamDocs />} />
             <Route path="events" element={<Events />} />
             <Route path="events/create" element={<EventCreate />} />
             <Route path="events/:eventId" element={<EventDetail />} />
+            <Route path="events/:eventId/checkin" element={<CheckIn />} />
             <Route path="calendar" element={<CalendarView />} />
             <Route path="explore" element={<Explore />} />
+            <Route path="analytics" element={<Analytics />} />
+            <Route path="portfolio" element={<Portfolio />} />
+            <Route path="jobs" element={<JobBoard />} />
             <Route path="profile" element={<Profile />} />
             <Route path="billing" element={<Billing />} />
             <Route path="billing/success" element={<BillingSuccess />} />
