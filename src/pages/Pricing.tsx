@@ -4,6 +4,7 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Check, X, Zap, Building2, Globe, Rocket, GraduationCap } from "lucide-react";
 import { useState } from "react";
+import { useAuthReady } from "@/hooks/useAuthReady";
 
 const plans = [
   {
@@ -137,8 +138,17 @@ const faqs = [
 
 const Pricing = () => {
   const navigate = useNavigate();
+  const { user } = useAuthReady();
   const [annual, setAnnual] = useState(true);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+
+  const goToBilling = () => {
+    if (user) {
+      navigate("/app/billing");
+    } else {
+      navigate("/auth?redirect=/app/billing");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -223,7 +233,7 @@ const Pricing = () => {
                   <Button
                     variant={plan.ctaVariant}
                     className={`w-full mb-6 ${plan.popular ? "gradient-primary text-white border-0" : ""}`}
-                    onClick={() => navigate("/auth")}
+                    onClick={goToBilling}
                   >
                     {plan.ctaLabel}
                   </Button>
@@ -289,7 +299,7 @@ const Pricing = () => {
                 Competitors charge $500+/year. We don't think that's right.
               </p>
             </div>
-            <Button className="gradient-primary text-white border-0 flex-shrink-0 whitespace-nowrap" onClick={() => navigate("/auth")}>
+            <Button className="gradient-primary text-white border-0 flex-shrink-0 whitespace-nowrap" onClick={goToBilling}>
               Get Enterprise →
             </Button>
           </div>
