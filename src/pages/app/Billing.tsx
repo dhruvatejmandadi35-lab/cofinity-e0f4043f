@@ -48,11 +48,13 @@ const upgradePlans = [
 const Billing = () => {
   const { user } = useAuthReady();
   const navigate = useNavigate();
-  const { toast } = useToast();
   const [params] = useSearchParams();
   const canceled = params.get("canceled") === "1";
-  const [loadingOrgId, setLoadingOrgId] = useState<string | null>(null);
   const [interval, setInterval] = useState<"month" | "year">("year");
+  const [checkout, setCheckout] = useState<{
+    orgId: string;
+    priceId: string;
+  } | null>(null);
 
   const { data: orgs, isLoading } = useQuery({
     queryKey: ["billing-orgs", user?.id],
@@ -79,25 +81,10 @@ const Billing = () => {
 
   const getSubForOrg = (orgId: string) => subscriptions?.find((s) => s.org_id === orgId);
 
-  const handleUpgrade = async (orgId: string, plan: "pro" | "growth" | "enterprise") => {
+  const handleUpgrade = (orgId: string, plan: "pro" | "growth" | "enterprise") => {
     if (!user) return;
-    setLoadingOrgId(orgId + plan);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
-      if (!token) throw new Error("Not authenticated");
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-checkout-session`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ orgId, plan, interval }),
-      });
-      const json = await res.json();
-      if (!res.ok || json.error) throw new Error(json.error ?? "Failed to create checkout session");
-      window.location.href = json.url;
-    } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
-      setLoadingOrgId(null);
-    }
+    const priceId = `${plan}_${interval === "year" ? "yearly" : "monthly"}`;
+    setCheckout({ orgId, priceId });
   };
 
   return (
