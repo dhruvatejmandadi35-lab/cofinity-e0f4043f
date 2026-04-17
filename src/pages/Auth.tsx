@@ -34,16 +34,19 @@ const Auth = () => {
         if (error) throw error;
         navigate("/app");
       } else {
-        const { error } = await supabase.auth.signUp({
+        const { data: signUpData, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
             data: { username, display_name: username },
-            emailRedirectTo: window.location.origin,
           },
         });
         if (error) throw error;
-        toast({ title: "Account created!", description: "Check your email to confirm your account." });
+        if (signUpData.session) {
+          navigate("/app");
+        } else {
+          toast({ title: "Account created!", description: "You can now sign in." });
+        }
       }
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
