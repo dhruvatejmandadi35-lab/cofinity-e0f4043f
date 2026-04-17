@@ -299,7 +299,7 @@ const Pricing = () => {
                 Competitors charge $500+/year. We don't think that's right.
               </p>
             </div>
-            <Button className="gradient-primary text-white border-0 flex-shrink-0 whitespace-nowrap" onClick={() => navigate("/auth")}>
+            <Button className="gradient-primary text-white border-0 flex-shrink-0 whitespace-nowrap" onClick={goToBilling}>
               Get Enterprise →
             </Button>
           </div>
