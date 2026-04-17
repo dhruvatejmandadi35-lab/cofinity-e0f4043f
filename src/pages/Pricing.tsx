@@ -138,8 +138,17 @@ const faqs = [
 
 const Pricing = () => {
   const navigate = useNavigate();
+  const { user } = useAuthReady();
   const [annual, setAnnual] = useState(true);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+
+  const goToBilling = () => {
+    if (user) {
+      navigate("/app/billing");
+    } else {
+      navigate("/auth?redirect=/app/billing");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
