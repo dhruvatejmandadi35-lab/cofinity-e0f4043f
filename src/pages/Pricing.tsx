@@ -4,6 +4,7 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Check, X, Zap, Building2, Globe, Rocket, GraduationCap } from "lucide-react";
 import { useState } from "react";
+import { useAuthReady } from "@/hooks/useAuthReady";
 
 const plans = [
   {
