@@ -9,8 +9,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, CalendarDays, Video, MapPin, Globe, Lock } from "lucide-react";
+import { ArrowLeft, CalendarDays, Video, MapPin, Globe, Lock, Link2, X } from "lucide-react";
 
 const EventCreate = () => {
   const { user } = useAuthReady();
@@ -26,6 +27,7 @@ const EventCreate = () => {
   const [meetingLink, setMeetingLink] = useState("");
   const [isPublic, setIsPublic] = useState(true);
   const [teamId, setTeamId] = useState("");
+  const [cohostTeamIds, setCohostTeamIds] = useState<string[]>([]);
 
   const { data: myTeams } = useQuery({
     queryKey: ["my-teams-for-event", user?.id],
@@ -45,15 +47,25 @@ const EventCreate = () => {
       if (!title.trim()) throw new Error("Title is required");
       if (!startDateTime) throw new Error("Start date/time is required");
 
-      const { error } = await supabase.from("events").insert({
+      const { data: newEvent, error } = await supabase.from("events").insert({
         team_id: teamId,
         title: title.trim(),
         description: description.trim() || null,
         date_time: new Date(startDateTime).toISOString(),
         is_public: isPublic,
         created_by: user!.id,
-      } as any);
+      } as any).select("id").single();
       if (error) throw error;
+
+      if (cohostTeamIds.length > 0 && newEvent) {
+        await (supabase as any).from("event_cohosts").insert(
+          cohostTeamIds.map((tid) => ({
+            event_id: newEvent.id,
+            team_id: tid,
+            role: "SUPPORTING",
+          }))
+        );
+      }
     },
     onSuccess: () => {
       toast({ title: "Event created!", description: "Your event has been created successfully." });
@@ -223,6 +235,62 @@ const EventCreate = () => {
             </div>
             <Switch checked={isPublic} onCheckedChange={setIsPublic} />
           </div>
+        </div>
+
+        {/* Co-hosts */}
+        <div className="glass rounded-xl p-6 space-y-4">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+            <Link2 className="w-4 h-4" /> Co-host Teams (optional)
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            Add other teams to co-host this event. The event will appear in their calendars and all members will be notified.
+          </p>
+          {myTeams && myTeams.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex flex-wrap gap-2">
+                {cohostTeamIds.map((id) => {
+                  const m = myTeams.find((x) => (x as any).teams?.id === id);
+                  const name = (m as any)?.teams?.name || id;
+                  return (
+                    <Badge key={id} variant="outline" className="gap-1.5 pr-1">
+                      {name}
+                      <button
+                        type="button"
+                        onClick={() => setCohostTeamIds(cohostTeamIds.filter((x) => x !== id))}
+                        className="hover:text-destructive"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </Badge>
+                  );
+                })}
+              </div>
+              <Select
+                value=""
+                onValueChange={(val) => {
+                  if (val && val !== teamId && !cohostTeamIds.includes(val)) {
+                    setCohostTeamIds([...cohostTeamIds, val]);
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Add a co-host team..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {myTeams
+                    .filter((m) => (m as any).teams?.id !== teamId && !cohostTeamIds.includes((m as any).teams?.id))
+                    .map((m) => {
+                      const team = (m as any).teams;
+                      return (
+                        <SelectItem key={team.id} value={team.id}>
+                          {team.name}
+                        </SelectItem>
+                      );
+                    })}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </div>
 
         {/* Submit */}

@@ -25,6 +25,8 @@ import Portfolio from "./pages/app/Portfolio.tsx";
 import JobBoard from "./pages/app/JobBoard.tsx";
 import PublicExplore from "./pages/PublicExplore.tsx";
 import PublicEvents from "./pages/PublicEvents.tsx";
+import PublicOrgPage from "./pages/PublicOrgPage.tsx";
+import PublicTeamPage from "./pages/PublicTeamPage.tsx";
 import Pricing from "./pages/Pricing.tsx";
 import Billing from "./pages/app/Billing.tsx";
 import BillingSuccess from "./pages/app/BillingSuccess.tsx";
@@ -44,6 +46,8 @@ const App = () => (
           <Route path="/explore" element={<PublicExplore />} />
           <Route path="/events" element={<PublicEvents />} />
           <Route path="/pricing" element={<Pricing />} />
+          <Route path="/org/:orgSlug" element={<PublicOrgPage />} />
+          <Route path="/org/:orgSlug/team/:teamSlug" element={<PublicTeamPage />} />
           <Route path="/app" element={<AppLayout />}>
             <Route index element={<Dashboard />} />
             <Route path="organizations" element={<Organizations />} />

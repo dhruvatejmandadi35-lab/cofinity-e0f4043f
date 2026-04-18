@@ -21,7 +21,10 @@ import {
   QrCode,
   Clock,
   UserPlus,
+  Link2,
 } from "lucide-react";
+import EventInterestButton from "@/components/EventInterestButton";
+import EventHypeFeed from "@/components/EventHypeFeed";
 
 type AttendeeStatus = "going" | "maybe" | "not_going";
 
@@ -145,6 +148,43 @@ const EventDetail = () => {
   });
 
   const maybeCount = attendees?.filter((a: any) => a.status === "maybe").length || 0;
+  const eventStarted = new Date() >= new Date(event?.date_time || 0);
+
+  const { data: cohosts } = useQuery({
+    queryKey: ["event-cohosts", eventId],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("event_cohosts")
+        .select("*, teams(id, name, slug, departments(name, organizations(name)))")
+        .eq("event_id", eventId!);
+      return data || [];
+    },
+    enabled: !!eventId,
+  });
+
+  const { data: mutualAttendees } = useQuery({
+    queryKey: ["mutual-attendees", eventId, user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const myTeamIds = await supabase
+        .from("team_members")
+        .select("team_id")
+        .eq("user_id", user.id);
+      const teamIds = (myTeamIds.data || []).map((m: any) => m.team_id);
+      if (!teamIds.length) return [];
+      const { data: friendMemberIds } = await supabase
+        .from("team_members")
+        .select("user_id")
+        .in("team_id", teamIds)
+        .neq("user_id", user.id);
+      const friendIds = [...new Set((friendMemberIds || []).map((m: any) => m.user_id))];
+      return (attendees || []).filter(
+        (a: any) => a.status === "going" && a.user_id !== user.id && friendIds.includes(a.user_id)
+      );
+    },
+    enabled: !!attendees && !!user,
+  });
+
   const team = (event as any)?.teams;
   const dept = team?.departments;
   const org = dept?.organizations;
@@ -177,7 +217,8 @@ const EventDetail = () => {
         <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="gap-1">
           <ArrowLeft className="w-4 h-4" /> Back
         </Button>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <EventInterestButton eventId={eventId!} />
           <Button
             variant="outline"
             size="sm"
@@ -364,6 +405,52 @@ const EventDetail = () => {
         </div>
       )}
 
+      {/* Social nudge: friends going */}
+      {mutualAttendees && mutualAttendees.length > 0 && (
+        <div className="glass rounded-xl p-4 flex items-center gap-3 text-sm border border-primary/20">
+          <div className="flex -space-x-2">
+            {mutualAttendees.slice(0, 3).map((a: any) => (
+              <div
+                key={a.id}
+                className="w-7 h-7 rounded-full gradient-primary flex items-center justify-center text-white text-xs font-bold border-2 border-background"
+              >
+                {(a.profiles?.display_name || a.profiles?.username || "?")[0].toUpperCase()}
+              </div>
+            ))}
+          </div>
+          <p className="text-muted-foreground">
+            <span className="text-foreground font-medium">
+              {mutualAttendees.length === 1
+                ? `${mutualAttendees[0].profiles?.display_name || mutualAttendees[0].profiles?.username} is`
+                : `${mutualAttendees.length} of your teammates are`}
+            </span>{" "}
+            going to this event
+          </p>
+        </div>
+      )}
+
+      {/* Co-hosts */}
+      {cohosts && cohosts.length > 0 && (
+        <div className="glass rounded-xl p-5 space-y-3">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+            <Link2 className="w-4 h-4" /> Co-hosted By
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {cohosts.map((ch: any) => (
+              <Badge
+                key={ch.id}
+                variant="outline"
+                className="gap-1.5 py-1.5 px-3 cursor-pointer hover:border-primary/40"
+                onClick={() => navigate(`/app/teams/${ch.teams?.id}`)}
+              >
+                {ch.teams?.name}
+                {ch.role === "PRIMARY" && <span className="text-xs text-primary">· Primary</span>}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Attendees */}
       <div className="glass rounded-xl p-5 space-y-4">
         <div className="flex items-center justify-between">
@@ -420,6 +507,9 @@ const EventDetail = () => {
           <p className="text-sm text-muted-foreground text-center py-3">No RSVPs yet. Be the first!</p>
         )}
       </div>
+
+      {/* Hype Feed */}
+      <EventHypeFeed eventId={eventId!} eventStarted={eventStarted} />
     </div>
   );
 };

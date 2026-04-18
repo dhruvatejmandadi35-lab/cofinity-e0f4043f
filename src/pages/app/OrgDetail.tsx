@@ -12,6 +12,7 @@ import { Plus, Users, Globe, Lock, Building2, ChevronRight, Zap, Heart, Code2, C
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import UpgradeModal from "@/components/UpgradeModal";
+import ClubHealthScore from "@/components/ClubHealthScore";
 import type { Database } from "@/integrations/supabase/types";
 
 const FREE_TEAM_LIMIT = 3;
@@ -412,7 +413,21 @@ const OrgDetail = () => {
             </span>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {(org as any)?.slug && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 text-xs"
+              onClick={() => {
+                const url = `${window.location.origin}/org/${(org as any).slug}`;
+                navigator.clipboard.writeText(url);
+                toast({ title: "Public link copied!", description: url });
+              }}
+            >
+              <Globe className="w-3.5 h-3.5" /> Copy Public Link
+            </Button>
+          )}
           <Button
             variant="outline"
             size="sm"
@@ -522,6 +537,11 @@ const OrgDetail = () => {
                           </div>
                           {team.description && (
                             <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{team.description}</p>
+                          )}
+                          {isOwner && (
+                            <div className="mt-2" onClick={(e) => e.stopPropagation()}>
+                              <ClubHealthScore teamId={team.id} />
+                            </div>
                           )}
                         </button>
                       );

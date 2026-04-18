@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { Award, ExternalLink, Plus, X, Link, MapPin } from "lucide-react";
+import InvolvementExport from "@/components/InvolvementExport";
 
 const Profile = () => {
   const { user } = useAuthReady();
@@ -107,15 +108,18 @@ const Profile = () => {
           <h1 className="text-3xl font-bold text-foreground">Profile</h1>
           <p className="text-muted-foreground mt-1">{user?.email}</p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-1.5"
-          onClick={() => navigate("/app/portfolio")}
-        >
-          <Award className="w-4 h-4" /> View Portfolio
-          <ExternalLink className="w-3 h-3" />
-        </Button>
+        <div className="flex items-center gap-2">
+          <InvolvementExport />
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={() => navigate("/app/portfolio")}
+          >
+            <Award className="w-4 h-4" /> Portfolio
+            <ExternalLink className="w-3 h-3" />
+          </Button>
+        </div>
       </div>
 
       {/* Badges preview */}

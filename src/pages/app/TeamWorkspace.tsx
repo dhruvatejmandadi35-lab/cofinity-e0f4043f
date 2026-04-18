@@ -10,10 +10,15 @@ import { useToast } from "@/hooks/use-toast";
 import { format, parseISO } from "date-fns";
 import {
   Send, Lock, Globe, Hash, Users, CalendarDays, Plus, Check, HelpCircle,
-  BarChart2, FileText, Clipboard, Pin, MoreHorizontal, ChevronDown, ChevronUp
+  BarChart2, FileText, Clipboard, Pin, MoreHorizontal, ChevronDown, ChevronUp,
+  History, Activity
 } from "lucide-react";
+import WelcomeModal from "@/components/WelcomeModal";
+import AnnouncementCard from "@/components/AnnouncementCard";
+import TeamHistory from "@/components/TeamHistory";
+import ClubHealthScore from "@/components/ClubHealthScore";
 
-type Tab = "chat" | "polls" | "docs" | "tasks";
+type Tab = "chat" | "polls" | "docs" | "tasks" | "history";
 
 const roleBadge = (role: string) => {
   if (role === "owner") return "bg-yellow-500/20 text-yellow-300 border-yellow-500/40";
@@ -38,6 +43,7 @@ const TeamWorkspace = () => {
   const [showPollForm, setShowPollForm] = useState(false);
   const [pollQuestion, setPollQuestion] = useState("");
   const [pollOptions, setPollOptions] = useState(["", ""]);
+  const [showWelcome, setShowWelcome] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { data: team } = useQuery({
@@ -147,6 +153,27 @@ const TeamWorkspace = () => {
     },
     enabled: !!teamId,
   });
+
+  const { data: welcomeShown } = useQuery({
+    queryKey: ["welcome-shown", teamId, user?.id],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("welcome_shown")
+        .select("id")
+        .eq("team_id", teamId!)
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!teamId && !!user && !!membership,
+  });
+
+  useEffect(() => {
+    if (membership && welcomeShown === null) {
+      const timer = setTimeout(() => setShowWelcome(true), 800);
+      return () => clearTimeout(timer);
+    }
+  }, [membership, welcomeShown]);
 
   useEffect(() => {
     if (!membership) return;
@@ -276,7 +303,10 @@ const TeamWorkspace = () => {
     { id: "polls", icon: BarChart2, label: "Polls" },
     { id: "docs", icon: FileText, label: "Docs" },
     { id: "tasks", icon: Clipboard, label: "Tasks" },
+    { id: "history", icon: History, label: "History" },
   ];
+
+  const isAdmin = membership?.role === "owner" || membership?.role === "admin";
 
   return (
     <div className="h-[calc(100vh-3.5rem)] flex overflow-hidden -m-6">
@@ -647,15 +677,46 @@ const TeamWorkspace = () => {
                 </div>
               </div>
             )}
+
+            {/* HISTORY TAB */}
+            {activeTab === "history" && (
+              <div className="flex-1 overflow-y-auto p-4">
+                <div className="max-w-2xl mx-auto">
+                  <div className="mb-4">
+                    <h2 className="text-sm font-semibold text-foreground">Team Archive</h2>
+                    <p className="text-xs text-muted-foreground mt-0.5">Complete history of events, announcements, and leadership</p>
+                  </div>
+                  <TeamHistory teamId={teamId!} />
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>
+
+      {/* Welcome Modal */}
+      {teamId && (
+        <WelcomeModal
+          teamId={teamId}
+          open={showWelcome}
+          onClose={() => setShowWelcome(false)}
+        />
+      )}
 
       {/* Right Panel */}
       <div className="w-64 flex-shrink-0 flex flex-col border-l border-border bg-muted/10 overflow-y-auto">
         {team?.description && (
           <div className="p-3 border-b border-border">
             <p className="text-[11px] text-muted-foreground leading-relaxed">{team.description}</p>
+          </div>
+        )}
+
+        {teamId && membership && (
+          <div className="p-3 border-b border-border">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-2 flex items-center gap-1">
+              <Activity className="w-3 h-3" /> Health
+            </p>
+            <ClubHealthScore teamId={teamId} showTips={isAdmin} />
           </div>
         )}
 
