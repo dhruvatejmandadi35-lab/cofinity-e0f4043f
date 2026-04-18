@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import UpgradeModal from "@/components/UpgradeModal";
 import ClubHealthScore from "@/components/ClubHealthScore";
+import OrgLeaderboard from "@/components/OrgLeaderboard";
 import type { Database } from "@/integrations/supabase/types";
 
 const FREE_TEAM_LIMIT = 3;
@@ -263,6 +264,16 @@ const OrgDetail = () => {
                 {org?.type && (
                   <Badge className={`text-xs ${orgTypeColors[org.type] || ""}`}>
                     {orgTypeLabel[org.type] || org.type}
+                  </Badge>
+                )}
+                {(org as any)?.is_verified && (
+                  <Badge className="text-xs bg-blue-500/20 text-blue-300 border-blue-500/40 gap-1">
+                    ✓ Verified
+                  </Badge>
+                )}
+                {(org as any)?.is_featured && (
+                  <Badge className="text-xs bg-yellow-500/20 text-yellow-300 border-yellow-500/40 gap-1">
+                    ⭐ Featured
                   </Badge>
                 )}
               </div>
@@ -551,6 +562,16 @@ const OrgDetail = () => {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Monthly Leaderboard */}
+      {orgId && (
+        <div className="glass rounded-xl p-5 space-y-4">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+            🏆 Monthly Leaderboard
+          </h2>
+          <OrgLeaderboard orgId={orgId} />
         </div>
       )}
 

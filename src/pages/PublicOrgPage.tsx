@@ -1,5 +1,6 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import SeoHead from "@/components/SeoHead";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,7 @@ export default function PublicOrgPage() {
   const { data: org, isLoading } = useQuery({
     queryKey: ["public-org", orgSlug],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("organizations")
         .select("*")
         .eq("slug", orgSlug!)
@@ -113,6 +114,12 @@ export default function PublicOrgPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <SeoHead
+        title={org.name}
+        description={(org as any).description || `${org.name} on Cofinity — join teams, RSVP to events, and connect with the community.`}
+        image={(org as any).cover_image_url || org.logo_url || undefined}
+        url={`${window.location.origin}/org/${orgSlug}`}
+      />
       {/* Nav */}
       <div className="border-b border-border/40 px-6 py-3 flex items-center justify-between">
         <Link to="/" className="text-sm font-bold gradient-text">Cofinity</Link>

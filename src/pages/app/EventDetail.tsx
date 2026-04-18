@@ -25,6 +25,9 @@ import {
 } from "lucide-react";
 import EventInterestButton from "@/components/EventInterestButton";
 import EventHypeFeed from "@/components/EventHypeFeed";
+import EventCountdown from "@/components/EventCountdown";
+import EventPhotoWall from "@/components/EventPhotoWall";
+import { useAwardPoints } from "@/hooks/useAwardPoints";
 
 type AttendeeStatus = "going" | "maybe" | "not_going";
 
@@ -34,6 +37,7 @@ const EventDetail = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const awardPoints = useAwardPoints();
 
   const { data: event, isLoading } = useQuery({
     queryKey: ["event", eventId],
@@ -110,9 +114,27 @@ const EventDetail = () => {
         if (error) throw error;
       }
     },
-    onSuccess: () => {
+    onSuccess: (_data, status) => {
       queryClient.invalidateQueries({ queryKey: ["event-attendees", eventId] });
       toast({ title: "RSVP updated!" });
+      if (status === "going") {
+        awardPoints.mutate({ source: "event_rsvp", referenceId: eventId! });
+        // Auto-promote from waitlist if someone cancels
+      } else if (status === "not_going" && waitlist && waitlist.length > 0) {
+        // Promote first person on waitlist
+        const first = waitlist[0];
+        (supabase as any).from("event_attendees").insert({
+          event_id: eventId!,
+          user_id: first.user_id,
+          status: "going",
+        }).then(() => {
+          (supabase as any).from("event_waitlist").delete()
+            .eq("event_id", eventId!)
+            .eq("user_id", first.user_id);
+          queryClient.invalidateQueries({ queryKey: ["waitlist", eventId] });
+          queryClient.invalidateQueries({ queryKey: ["event-attendees", eventId] });
+        });
+      }
     },
     onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" }),
   });
@@ -325,6 +347,20 @@ const EventDetail = () => {
         </div>
       </div>
 
+      {/* Countdown */}
+      {!eventStarted && <EventCountdown dateTime={event.date_time} />}
+
+      {/* Capacity warning */}
+      {capacity && !isFull && capacity - goingCount <= 5 && capacity - goingCount > 0 && (
+        <div className="glass rounded-xl p-4 flex items-center gap-3 text-sm border border-orange-500/30 bg-orange-500/5">
+          <Users className="w-4 h-4 text-orange-400 shrink-0" />
+          <p>
+            <span className="text-orange-400 font-semibold">Only {capacity - goingCount} spot{capacity - goingCount === 1 ? "" : "s"} left!</span>
+            {" "}RSVP now before it fills up.
+          </p>
+        </div>
+      )}
+
       {/* RSVP / Waitlist */}
       {user && (
         <div className="glass rounded-xl p-5 space-y-3">
@@ -510,6 +546,9 @@ const EventDetail = () => {
 
       {/* Hype Feed */}
       <EventHypeFeed eventId={eventId!} eventStarted={eventStarted} />
+
+      {/* Photo Wall */}
+      <EventPhotoWall eventId={eventId!} eventStarted={eventStarted} />
     </div>
   );
 };

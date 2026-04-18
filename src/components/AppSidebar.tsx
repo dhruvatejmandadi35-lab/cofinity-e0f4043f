@@ -13,6 +13,7 @@ import {
   Award,
   Briefcase,
 } from "lucide-react";
+import PointsBadge from "@/components/PointsBadge";
 import { NavLink } from "@/components/NavLink";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -242,7 +243,7 @@ export function AppSidebar() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-medium text-foreground truncate">{displayName}</p>
-              <p className="text-[10px] text-muted-foreground truncate">{user?.email}</p>
+              <PointsBadge />
             </div>
           </div>
         )}

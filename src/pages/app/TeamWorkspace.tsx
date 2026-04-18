@@ -17,6 +17,7 @@ import WelcomeModal from "@/components/WelcomeModal";
 import AnnouncementCard from "@/components/AnnouncementCard";
 import TeamHistory from "@/components/TeamHistory";
 import ClubHealthScore from "@/components/ClubHealthScore";
+import { useAwardPoints } from "@/hooks/useAwardPoints";
 
 type Tab = "chat" | "polls" | "docs" | "tasks" | "history";
 
@@ -45,6 +46,7 @@ const TeamWorkspace = () => {
   const [pollOptions, setPollOptions] = useState(["", ""]);
   const [showWelcome, setShowWelcome] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const awardPoints = useAwardPoints();
 
   const { data: team } = useQuery({
     queryKey: ["team", teamId],
@@ -206,7 +208,10 @@ const TeamWorkspace = () => {
       });
       if (error) throw error;
     },
-    onSuccess: () => setMessage(""),
+    onSuccess: () => {
+      setMessage("");
+      awardPoints.mutate({ source: "message", teamId: teamId! });
+    },
     onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" }),
   });
 

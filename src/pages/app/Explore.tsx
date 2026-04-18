@@ -20,6 +20,19 @@ const Explore = () => {
   const [tab, setTab] = useState<Tab>("trending");
   const [search, setSearch] = useState("");
 
+  const { data: featuredOrgs } = useQuery({
+    queryKey: ["featured-orgs"],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("organizations")
+        .select("*")
+        .eq("is_featured", true)
+        .limit(6);
+      return data || [];
+    },
+    enabled: !!user,
+  });
+
   const { data: orgs } = useQuery({
     queryKey: ["explore-orgs"],
     queryFn: async () => {
@@ -144,6 +157,38 @@ const Explore = () => {
         <h1 className="text-3xl font-bold text-foreground">Explore</h1>
         <p className="text-muted-foreground mt-1">Discover organizations, teams, and events</p>
       </div>
+
+      {/* Featured orgs spotlight */}
+      {featuredOrgs && featuredOrgs.length > 0 && !search && (
+        <div className="space-y-3">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+            ⭐ Featured Organizations
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {featuredOrgs.map((org: any) => (
+              <button
+                key={org.id}
+                onClick={() => navigate(`/app/organizations/${org.id}`)}
+                className="glass rounded-xl p-4 text-left hover:border-primary/40 transition-colors border border-yellow-500/20 bg-yellow-500/5"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <div
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold text-white"
+                    style={{ background: "linear-gradient(135deg, hsl(38 92% 55%), hsl(48 90% 55%))" }}
+                  >
+                    {org.name.slice(0, 2).toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm">{org.name}</p>
+                    {org.is_verified && <span className="text-[10px] text-blue-400">✓ Verified</span>}
+                  </div>
+                </div>
+                {org.description && <p className="text-xs text-muted-foreground line-clamp-2">{org.description}</p>}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />

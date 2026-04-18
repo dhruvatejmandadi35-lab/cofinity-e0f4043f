@@ -12,11 +12,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, CalendarDays, Video, MapPin, Globe, Lock, Link2, X } from "lucide-react";
+import { useAwardPoints } from "@/hooks/useAwardPoints";
 
 const EventCreate = () => {
   const { user } = useAuthReady();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const awardPoints = useAwardPoints();
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -68,6 +70,7 @@ const EventCreate = () => {
       }
     },
     onSuccess: () => {
+      awardPoints.mutate({ source: "event_create", teamId });
       toast({ title: "Event created!", description: "Your event has been created successfully." });
       navigate("/app/events");
     },
