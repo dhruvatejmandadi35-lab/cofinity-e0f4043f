@@ -339,7 +339,7 @@ const TeamWorkspace = () => {
           {TABS.map((t) => (
             <button
               key={t.id}
-              onClick={() => setTab(t.id)}
+              onClick={() => setActiveTab(t.id)}
               className={`flex items-center gap-1.5 w-full px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${
                 activeTab === t.id
                   ? "bg-primary/10 text-primary"
