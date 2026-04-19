@@ -48,12 +48,13 @@ const Organizations = () => {
     enabled: !!user,
   });
 
-  const highestPlan = orgs?.reduce((best, o) => {
-    const sub = (o as any).subscriptions;
-    const plan: string = (Array.isArray(sub) ? sub[0]?.plan : sub?.plan) ?? "free";
-    const rank: Record<string, number> = { free: 0, pro: 1, growth: 2, enterprise: 3 };
-    return (rank[plan] ?? 0) > (rank[best] ?? 0) ? plan : best;
-  }, "free") ?? "free";
+  const highestPlan =
+    orgs?.reduce((best, o) => {
+      const sub = (o as any).subscriptions;
+      const plan: string = (Array.isArray(sub) ? sub[0]?.plan : sub?.plan) ?? "free";
+      const rank: Record<string, number> = { free: 0, pro: 1, growth: 2, enterprise: 3 };
+      return (rank[plan] ?? 0) > (rank[best] ?? 0) ? plan : best;
+    }, "free") ?? "free";
   const isPro = highestPlan !== "free";
   const orgLimit = ORG_LIMITS[highestPlan] ?? 1;
   const atOrgLimit = (orgs?.length ?? 0) >= orgLimit;
@@ -95,11 +96,8 @@ const Organizations = () => {
           <h1 className="text-3xl font-bold gradient-text">Organizations</h1>
           <p className="text-muted-foreground mt-1 text-sm">Manage your organizations and departments</p>
         </div>
-        <Button
-          className="gradient-primary text-white border-0 gap-1.5"
-          onClick={handleCreateClick}
-        >
-          <Plus className="w-4 h-4" /> Create Organization
+        <Button className="gradient-primary text-white border-0 gap-1.5" onClick={handleCreateClick}>
+          <Plus className="w-4 h-4" /> Create Org/Co Space
         </Button>
       </div>
 
@@ -130,17 +128,27 @@ const Organizations = () => {
             <DialogTitle>Create Organization</DialogTitle>
           </DialogHeader>
           <form
-            onSubmit={(e) => { e.preventDefault(); createOrg.mutate(); }}
+            onSubmit={(e) => {
+              e.preventDefault();
+              createOrg.mutate();
+            }}
             className="space-y-4"
           >
             <div>
               <Label>Organization Name</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Westlake High School" required />
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g. Westlake High School"
+                required
+              />
             </div>
             <div>
               <Label>Type</Label>
               <Select value={type} onValueChange={(v) => setType(v as OrgType)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="school">School</SelectItem>
                   <SelectItem value="company">Company</SelectItem>
@@ -148,7 +156,11 @@ const Organizations = () => {
                 </SelectContent>
               </Select>
             </div>
-            <Button type="submit" className="w-full gradient-primary text-white border-0" disabled={createOrg.isPending}>
+            <Button
+              type="submit"
+              className="w-full gradient-primary text-white border-0"
+              disabled={createOrg.isPending}
+            >
               {createOrg.isPending ? "Creating..." : "Create"}
             </Button>
           </form>
@@ -157,7 +169,9 @@ const Organizations = () => {
 
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {[1, 2].map((i) => <div key={i} className="glass rounded-xl p-6 h-32 animate-pulse" />)}
+          {[1, 2].map((i) => (
+            <div key={i} className="glass rounded-xl p-6 h-32 animate-pulse" />
+          ))}
         </div>
       ) : orgs?.length === 0 ? (
         <div className="glass rounded-xl p-12 text-center">
@@ -169,7 +183,7 @@ const Organizations = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {orgs?.map((org) => {
             const sub = (org as any).subscriptions;
-            const plan = Array.isArray(sub) ? sub[0]?.plan : sub?.plan ?? "free";
+            const plan = Array.isArray(sub) ? sub[0]?.plan : (sub?.plan ?? "free");
             const isPro = ["pro", "growth", "enterprise"].includes(plan);
             return (
               <button
