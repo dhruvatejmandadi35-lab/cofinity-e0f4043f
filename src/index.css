@@ -330,3 +330,69 @@
 .animate-scale-in {
   animation: scale-in 0.5s ease-out forwards;
 }
+
+/* === Level system animations === */
+
+/* Icon level: animated gradient text */
+@keyframes icon-gradient-shift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.level-icon-gradient {
+  background: linear-gradient(270deg, #60a5fa, #c084fc, #22d3ee, #a78bfa, #60a5fa);
+  background-size: 300% 300%;
+  animation: icon-gradient-shift 4s ease infinite;
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+.animate-icon-gradient {
+  animation: icon-gradient-shift 4s ease infinite;
+}
+
+/* Legend level: gold glow pulse */
+@keyframes legend-glow {
+  0%, 100% { box-shadow: 0 0 8px rgba(251,191,36,0.3), 0 0 20px rgba(251,191,36,0.15); }
+  50%       { box-shadow: 0 0 16px rgba(251,191,36,0.6), 0 0 40px rgba(251,191,36,0.3); }
+}
+
+.animate-legend-glow {
+  animation: legend-glow 2.5s ease-in-out infinite;
+}
+
+/* Scroll dot animation for hero */
+@keyframes scroll-dot {
+  0%, 100% { transform: translateY(0); opacity: 1; }
+  80%       { transform: translateY(10px); opacity: 0.3; }
+}
+
+.animate-scroll-dot {
+  animation: scroll-dot 1.5s ease-in-out infinite;
+}
+
+/* Shimmer for shop / Icon level bar */
+@keyframes shimmer {
+  0%   { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+/* Slow pulse for Icon elements */
+.animate-pulse-slow {
+  animation: glow-pulse 3s ease-in-out infinite;
+}
+
+/* === 3D Scroll reveal classes === */
+/* Applied by useScrollReveal — defined here for reference.
+   Actual transitions are set via inline styles for per-element control. */
+.reveal-hidden {
+  opacity: 0;
+  transform: perspective(900px) translateY(40px) rotateX(6deg);
+}
+
+.reveal-visible {
+  opacity: 1;
+  transform: perspective(900px) translateY(0) rotateX(0deg);
+  transition: opacity 0.8s ease-out, transform 0.8s cubic-bezier(0.16,1,0.3,1);
+}

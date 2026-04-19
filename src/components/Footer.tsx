@@ -1,4 +1,10 @@
+import { Link } from "react-router-dom";
 import cofinityLogo from "@/assets/cofinity-logo.png";
+
+const legalRoutes: Record<string, string> = {
+  Privacy: "/privacy",
+  Terms: "/terms",
+};
 
 const Footer = () => {
   const links = {
@@ -55,12 +61,18 @@ const Footer = () => {
               <ul className="space-y-2.5">
                 {items.map((item) => (
                   <li key={item}>
-                    <a
-                      href="#"
-                      className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      {item}
-                    </a>
+                    {legalRoutes[item] ? (
+                      <Link
+                        to={legalRoutes[item]}
+                        className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {item}
+                      </Link>
+                    ) : (
+                      <a href="#" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+                        {item}
+                      </a>
+                    )}
                   </li>
                 ))}
               </ul>

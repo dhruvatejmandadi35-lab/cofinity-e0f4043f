@@ -1,18 +1,20 @@
 import Navbar from "@/components/Navbar";
-import HeroSection from "@/components/HeroSection";
-import FeaturesSection from "@/components/FeaturesSection";
-import OrgStructureSection from "@/components/OrgStructureSection";
-import CTASection from "@/components/CTASection";
+import LandingHero from "@/components/landing/LandingHero";
+import LandingFeatureSlides from "@/components/landing/LandingFeatureSlides";
+import LandingLevels from "@/components/landing/LandingLevels";
+import LandingStats from "@/components/landing/LandingStats";
+import LandingCTA from "@/components/landing/LandingCTA";
 import Footer from "@/components/Footer";
 
 const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <HeroSection />
-      <FeaturesSection />
-      <OrgStructureSection />
-      <CTASection />
+      <LandingHero />
+      <LandingStats />
+      <LandingFeatureSlides />
+      <LandingLevels />
+      <LandingCTA />
       <Footer />
     </div>
   );

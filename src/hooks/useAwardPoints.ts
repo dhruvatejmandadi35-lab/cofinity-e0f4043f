@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useToast } from "@/hooks/use-toast";
 import { useConfetti } from "@/hooks/useConfetti";
+import { getLevelFromPoints, getAllUnlockedPerks, LEVELS } from "@/constants/levels";
 
 type PointSource =
   | "event_rsvp"
@@ -199,21 +200,51 @@ export function useAwardPoints() {
         }
       }
 
-      return points;
+      // ── Level up check ─────────────────────────────────────────
+      const prevLevel = getLevelFromPoints(rawPoints - points);
+      const newLevel  = getLevelFromPoints(rawPoints);
+
+      if (newLevel.level > prevLevel.level) {
+        // Update profile: current_level + unlocked_perks + all_time_points
+        const unlockedPerks = getAllUnlockedPerks(newLevel.level);
+        await (supabase as any)
+          .from("profiles")
+          .update({
+            current_level:   newLevel.level,
+            all_time_points: rawPoints,
+            unlocked_perks:  unlockedPerks,
+          })
+          .eq("id", user.id);
+
+        // Expose new level info via return so the caller can show modal
+        return { points, newLevel };
+      }
+
+      // Keep all_time_points in sync (no level change)
+      await (supabase as any)
+        .from("profiles")
+        .update({ all_time_points: rawPoints })
+        .eq("id", user.id);
+
+      return { points, newLevel: null };
     },
-    onSuccess: (pts) => {
-      if (pts) {
+    onSuccess: (result) => {
+      if (result?.points) {
         queryClient.invalidateQueries({ queryKey: ["user-total-points"] });
         queryClient.invalidateQueries({ queryKey: ["my-badges"] });
+        queryClient.invalidateQueries({ queryKey: ["profile"] });
       }
     },
   });
 }
 
+/** Derive level info from all-time points using the 7-tier system */
 export function useUserLevel(points: number): { level: string; next: number; color: string } {
-  if (points >= 1500) return { level: "Legend", next: Infinity, color: "text-yellow-400" };
-  if (points >= 700) return { level: "Leader", next: 1500, color: "text-purple-400" };
-  if (points >= 300) return { level: "Veteran", next: 700, color: "text-blue-400" };
-  if (points >= 100) return { level: "Active", next: 300, color: "text-green-400" };
-  return { level: "Newcomer", next: 100, color: "text-muted-foreground" };
+  const lvl = getLevelFromPoints(points);
+  const nextLvl = LEVELS.find((l) => l.level === lvl.level + 1);
+  return {
+    level: lvl.name,
+    next: nextLvl?.minPoints ?? Infinity,
+    color: lvl.color,
+  };
 }

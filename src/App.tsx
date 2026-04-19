@@ -32,6 +32,8 @@ import Billing from "./pages/app/Billing.tsx";
 import BillingSuccess from "./pages/app/BillingSuccess.tsx";
 import TeamSettings from "./pages/app/TeamSettings.tsx";
 import NotFound from "./pages/NotFound.tsx";
+import TermsOfUse from "./pages/TermsOfUse.tsx";
+import PrivacyPolicy from "./pages/PrivacyPolicy.tsx";
 
 const queryClient = new QueryClient();
 
@@ -71,6 +73,8 @@ const App = () => (
             <Route path="billing" element={<Billing />} />
             <Route path="billing/success" element={<BillingSuccess />} />
           </Route>
+          <Route path="terms" element={<TermsOfUse />} />
+          <Route path="privacy" element={<PrivacyPolicy />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

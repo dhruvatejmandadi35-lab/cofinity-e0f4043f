@@ -15,6 +15,7 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(false);
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
@@ -39,6 +40,11 @@ const Auth = () => {
         if (error) throw error;
         navigate(redirectTo);
       } else {
+        if (!ageConfirmed) {
+          toast({ title: "Age confirmation required", description: "You must confirm you are 13 or older to create an account.", variant: "destructive" });
+          setLoading(false);
+          return;
+        }
         const { error: signUpError } = await supabase.auth.signUp({
           email,
           password,
@@ -152,7 +158,24 @@ const Auth = () => {
               minLength={6}
             />
           </div>
-          <Button type="submit" variant="hero" className="w-full h-11" disabled={loading}>
+          {!isLogin && (
+            <div className="flex items-start gap-3 pt-1">
+              <input
+                id="age-confirm"
+                type="checkbox"
+                checked={ageConfirmed}
+                onChange={(e) => setAgeConfirmed(e.target.checked)}
+                className="mt-0.5 w-4 h-4 rounded accent-primary cursor-pointer flex-shrink-0"
+              />
+              <label htmlFor="age-confirm" className="text-xs text-muted-foreground cursor-pointer leading-relaxed">
+                I confirm I am <strong className="text-foreground">13 years of age or older</strong> and I agree to the{" "}
+                <a href="/terms" className="text-primary underline" target="_blank" rel="noopener noreferrer">Terms of Use</a>
+                {" "}and{" "}
+                <a href="/privacy" className="text-primary underline" target="_blank" rel="noopener noreferrer">Privacy Policy</a>.
+              </label>
+            </div>
+          )}
+          <Button type="submit" variant="hero" className="w-full h-11" disabled={loading || (!isLogin && !ageConfirmed)}>
             {loading ? "Loading..." : isLogin ? "Sign In" : "Create Account"}
           </Button>
         </form>
