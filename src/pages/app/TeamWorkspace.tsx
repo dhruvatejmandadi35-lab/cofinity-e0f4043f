@@ -28,6 +28,8 @@ import TeamLeaderboard from "@/components/TeamLeaderboard";
 import MemberSpotlight from "@/components/MemberSpotlight";
 import StreakBadge from "@/components/StreakBadge";
 import { useAwardPoints } from "@/hooks/useAwardPoints";
+import TeamDocs from "./TeamDocs";
+import TaskBoard from "./TaskBoard";
 
 type Tab = "chat" | "polls" | "docs" | "tasks" | "history" | "leaderboard";
 
@@ -1213,35 +1215,15 @@ const TeamWorkspace = () => {
 
             {/* ── DOCS TAB ── */}
             {activeTab === "docs" && (
-              <div className="flex-1 flex items-center justify-center p-6">
-                <div className="text-center space-y-3">
-                  <FileText className="w-12 h-12 mx-auto text-muted-foreground opacity-40" />
-                  <p className="text-sm font-semibold text-foreground">Team Docs & Wiki</p>
-                  <p className="text-xs text-muted-foreground">Shared knowledge base for your team</p>
-                  <Button
-                    className="gradient-primary text-white border-0"
-                    onClick={() => navigate(`/app/teams/${teamId}/docs`)}
-                  >
-                    Open Docs
-                  </Button>
-                </div>
+              <div className="flex-1 overflow-y-auto p-4">
+                <TeamDocs />
               </div>
             )}
 
             {/* ── TASKS TAB ── */}
             {activeTab === "tasks" && (
-              <div className="flex-1 flex items-center justify-center p-6">
-                <div className="text-center space-y-3">
-                  <Clipboard className="w-12 h-12 mx-auto text-muted-foreground opacity-40" />
-                  <p className="text-sm font-semibold text-foreground">Kanban Task Board</p>
-                  <p className="text-xs text-muted-foreground">Organize and track team work</p>
-                  <Button
-                    className="gradient-primary text-white border-0"
-                    onClick={() => navigate(`/app/teams/${teamId}/tasks`)}
-                  >
-                    Open Task Board
-                  </Button>
-                </div>
+              <div className="flex-1 overflow-auto p-4">
+                <TaskBoard />
               </div>
             )}
 
