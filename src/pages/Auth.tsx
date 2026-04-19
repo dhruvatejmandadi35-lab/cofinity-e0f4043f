@@ -56,7 +56,7 @@ const Auth = () => {
         if (signUpError) throw signUpError;
         const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
         if (signInError) throw signInError;
-        navigate(redirectTo);
+        navigate("/onboarding");
       }
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });

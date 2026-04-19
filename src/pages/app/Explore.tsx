@@ -33,7 +33,7 @@ const Explore = () => {
     enabled: !!user,
   });
 
-  const { data: orgs } = useQuery({
+  const { data: orgs, isLoading: orgsLoading } = useQuery({
     queryKey: ["explore-orgs"],
     queryFn: async () => {
       const { data } = await supabase
@@ -151,12 +151,26 @@ const Explore = () => {
     { id: "events", label: "Events", icon: CalendarDays },
   ];
 
+  const isLoading = orgsLoading;
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-foreground">Explore</h1>
-        <p className="text-muted-foreground mt-1">Discover organizations, teams, and events</p>
+        <h1 className="text-3xl font-bold gradient-text">Explore</h1>
+        <p className="text-muted-foreground mt-1">Discover organizations near you</p>
       </div>
+
+      {/* Skeleton loading */}
+      {isLoading && (
+        <div className="space-y-3">
+          <div className="h-4 w-40 bg-muted/40 rounded animate-pulse" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="glass rounded-xl p-4 h-24 animate-pulse" />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Featured orgs spotlight */}
       {featuredOrgs && featuredOrgs.length > 0 && !search && (

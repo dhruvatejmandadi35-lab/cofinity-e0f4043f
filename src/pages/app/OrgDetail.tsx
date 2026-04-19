@@ -550,8 +550,20 @@ const OrgDetail = () => {
                             <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{team.description}</p>
                           )}
                           {isOwner && (
-                            <div className="mt-2" onClick={(e) => e.stopPropagation()}>
+                            <div className="mt-2 space-y-2" onClick={(e) => e.stopPropagation()}>
                               <ClubHealthScore teamId={team.id} />
+                              {(team as any).invite_code && (
+                                <button
+                                  className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-primary transition-colors"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigator.clipboard.writeText((team as any).invite_code);
+                                    toast({ title: "Invite code copied!", description: `Code: ${(team as any).invite_code}` });
+                                  }}
+                                >
+                                  <Copy className="w-3 h-3" /> Invite code: {(team as any).invite_code}
+                                </button>
+                              )}
                             </div>
                           )}
                         </button>

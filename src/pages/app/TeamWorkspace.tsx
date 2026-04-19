@@ -415,6 +415,21 @@ const TeamWorkspace = () => {
           )}
         </div>
 
+        {/* Invite button */}
+        {(team as any)?.invite_code && (
+          <div className="px-3 py-2 border-b border-border">
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText((team as any).invite_code);
+                toast({ title: "Invite code copied!", description: `Share this code: ${(team as any).invite_code}` });
+              }}
+              className="flex items-center gap-1.5 text-[10px] text-muted-foreground hover:text-primary transition-colors w-full"
+            >
+              <Users className="w-3 h-3" /> Invite · {(team as any).invite_code}
+            </button>
+          </div>
+        )}
+
         {/* Tab Nav */}
         <div className="p-2 space-y-0.5">
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold px-1 mb-1">
@@ -627,8 +642,9 @@ const TeamWorkspace = () => {
                 <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
                   {messages?.length === 0 && (
                     <div className="text-center py-12 text-muted-foreground">
-                      <Hash className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                      <p className="text-sm">This is the beginning of # chat</p>
+                      <div className="text-4xl mb-3">👋</div>
+                      <p className="text-sm font-medium text-foreground mb-1">No messages yet — say hello!</p>
+                      <p className="text-xs text-muted-foreground">Be the first to post in this team.</p>
                     </div>
                   )}
                   {messages?.map((msg) => {
@@ -714,6 +730,7 @@ const TeamWorkspace = () => {
                       onChange={(e) => setMessage(e.target.value)}
                       placeholder="Message # chat"
                       className="flex-1 bg-muted/20"
+                      autoFocus={messages?.length === 0}
                       onKeyDown={(e) => {
                         if (e.key === "Enter" && !e.shiftKey) {
                           e.preventDefault();

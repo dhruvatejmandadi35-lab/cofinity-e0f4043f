@@ -12,6 +12,8 @@ import {
   BarChart2,
   Award,
   Briefcase,
+  Plus,
+  Hash,
 } from "lucide-react";
 import PointsBadge from "@/components/PointsBadge";
 import { NavLink } from "@/components/NavLink";
@@ -33,6 +35,11 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const mainNavItems = [
   { title: "Dashboard", url: "/app", icon: LayoutDashboard, end: true },
@@ -82,13 +89,39 @@ export function AppSidebar() {
     navigate("/");
   };
 
-  // Get display name from profile
   const displayName =
     user?.user_metadata?.display_name ||
     user?.user_metadata?.full_name ||
     user?.email?.split("@")[0] ||
     "User";
   const initials = displayName.slice(0, 2).toUpperCase();
+
+  const hasOrgs = (myOrgs?.length ?? 0) > 0;
+  const hasTeams = (teamMemberships?.length ?? 0) > 0;
+
+  const NavItem = ({ item }: { item: typeof mainNavItems[0] }) => {
+    const content = (
+      <NavLink
+        to={item.url}
+        end={item.end}
+        className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-muted/40 text-muted-foreground hover:text-foreground transition-colors text-sm w-full"
+        activeClassName="bg-primary/10 text-primary font-medium"
+      >
+        <item.icon className="w-4 h-4 flex-shrink-0" />
+        {!collapsed && <span>{item.title}</span>}
+      </NavLink>
+    );
+
+    if (collapsed) {
+      return (
+        <Tooltip>
+          <TooltipTrigger asChild>{content}</TooltipTrigger>
+          <TooltipContent side="right">{item.title}</TooltipContent>
+        </Tooltip>
+      );
+    }
+    return content;
+  };
 
   return (
     <Sidebar collapsible="icon">
@@ -108,6 +141,42 @@ export function AppSidebar() {
           )}
         </div>
 
+        {/* Context-aware CTA: no org yet */}
+        {!hasOrgs && !hasTeams && !collapsed && (
+          <div className="mx-3 mt-3 p-3 rounded-xl bg-primary/5 border border-primary/20 space-y-2">
+            <p className="text-xs font-medium text-foreground">Get started</p>
+            <Button
+              size="sm"
+              className="w-full gradient-primary text-white border-0 gap-1.5 text-xs h-8"
+              onClick={() => navigate("/app/organizations")}
+            >
+              <Plus className="w-3.5 h-3.5" /> Create Org
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full gap-1.5 text-xs h-8"
+              onClick={() => navigate("/onboarding")}
+            >
+              <Hash className="w-3.5 h-3.5" /> Join with Code
+            </Button>
+          </div>
+        )}
+
+        {/* Context-aware CTA: has org but no teams */}
+        {hasOrgs && !hasTeams && !collapsed && (
+          <div className="mx-3 mt-3 p-3 rounded-xl bg-accent/5 border border-accent/20">
+            <p className="text-xs text-muted-foreground mb-2">You have no teams yet</p>
+            <Button
+              size="sm"
+              className="w-full gradient-primary text-white border-0 gap-1.5 text-xs h-8"
+              onClick={() => navigate("/app/organizations")}
+            >
+              <Plus className="w-3.5 h-3.5" /> Create a Team
+            </Button>
+          </div>
+        )}
+
         {/* Main nav */}
         <SidebarGroup>
           {!collapsed && <SidebarGroupLabel className="text-[10px]">Navigation</SidebarGroupLabel>}
@@ -116,15 +185,7 @@ export function AppSidebar() {
               {mainNavItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <NavLink
-                      to={item.url}
-                      end={item.end}
-                      className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-muted/40 text-muted-foreground hover:text-foreground transition-colors text-sm"
-                      activeClassName="bg-primary/10 text-primary font-medium"
-                    >
-                      <item.icon className="w-4 h-4 flex-shrink-0" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
+                    <NavItem item={item} />
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -133,7 +194,7 @@ export function AppSidebar() {
         </SidebarGroup>
 
         {/* Organizations */}
-        {!collapsed && (myOrgs?.length ?? 0) > 0 && (
+        {!collapsed && hasOrgs && (
           <SidebarGroup>
             <SidebarGroupLabel className="text-[10px] flex items-center justify-between">
               <span>Organizations</span>
@@ -147,7 +208,7 @@ export function AppSidebar() {
             <SidebarGroupContent>
               <SidebarMenu>
                 {myOrgs?.map((org) => {
-                  const initials = org.name.slice(0, 2).toUpperCase();
+                  const orgInitials = org.name.slice(0, 2).toUpperCase();
                   return (
                     <SidebarMenuItem key={org.id}>
                       <SidebarMenuButton asChild>
@@ -159,7 +220,7 @@ export function AppSidebar() {
                             className="w-5 h-5 rounded flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0"
                             style={{ background: "linear-gradient(135deg, hsl(220 72% 68%), hsl(252 58% 62%))" }}
                           >
-                            {initials}
+                            {orgInitials}
                           </div>
                           <span className="truncate text-xs">{org.name}</span>
                         </button>
@@ -173,7 +234,7 @@ export function AppSidebar() {
         )}
 
         {/* Teams */}
-        {!collapsed && (teamMemberships?.length ?? 0) > 0 && (
+        {!collapsed && hasTeams && (
           <SidebarGroup>
             <SidebarGroupLabel className="text-[10px]">Teams</SidebarGroupLabel>
             <SidebarGroupContent>
@@ -208,7 +269,7 @@ export function AppSidebar() {
           </SidebarGroup>
         )}
 
-        {/* If collapsed: show org + team icons */}
+        {/* Collapsed: org + team icons with tooltips */}
         {collapsed && (
           <SidebarGroup>
             <SidebarGroupContent>
@@ -218,18 +279,22 @@ export function AppSidebar() {
                   return (
                     <SidebarMenuItem key={org.id}>
                       <SidebarMenuButton asChild>
-                        <button
-                          onClick={() => navigate(`/app/organizations/${org.id}`)}
-                          title={org.name}
-                          className="w-full flex items-center justify-center py-1.5"
-                        >
-                          <div
-                            className="w-6 h-6 rounded flex items-center justify-center text-[9px] font-bold text-white"
-                            style={{ background: "linear-gradient(135deg, hsl(220 72% 68%), hsl(252 58% 62%))" }}
-                          >
-                            {ini}
-                          </div>
-                        </button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              onClick={() => navigate(`/app/organizations/${org.id}`)}
+                              className="w-full flex items-center justify-center py-1.5"
+                            >
+                              <div
+                                className="w-6 h-6 rounded flex items-center justify-center text-[9px] font-bold text-white"
+                                style={{ background: "linear-gradient(135deg, hsl(220 72% 68%), hsl(252 58% 62%))" }}
+                              >
+                                {ini}
+                              </div>
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent side="right">{org.name}</TooltipContent>
+                        </Tooltip>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   );
@@ -241,7 +306,6 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="border-t border-border">
-        {/* User info */}
         {!collapsed && (
           <div className="px-3 py-2 flex items-center gap-2">
             <div
@@ -256,22 +320,32 @@ export function AppSidebar() {
             </div>
           </div>
         )}
-        <Button
-          variant="ghost"
-          className="w-full justify-start text-muted-foreground hover:text-primary text-sm gap-2"
-          onClick={() => navigate("/app/billing")}
-        >
-          <Zap className="w-4 h-4 flex-shrink-0" />
-          {!collapsed && "Billing & Plans"}
-        </Button>
-        <Button
-          variant="ghost"
-          className="w-full justify-start text-muted-foreground hover:text-foreground text-sm gap-2"
-          onClick={handleSignOut}
-        >
-          <LogOut className="w-4 h-4 flex-shrink-0" />
-          {!collapsed && "Sign Out"}
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              className="w-full justify-start text-muted-foreground hover:text-primary text-sm gap-2"
+              onClick={() => navigate("/app/billing")}
+            >
+              <Zap className="w-4 h-4 flex-shrink-0" />
+              {!collapsed && "Billing & Plans"}
+            </Button>
+          </TooltipTrigger>
+          {collapsed && <TooltipContent side="right">Billing & Plans</TooltipContent>}
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              className="w-full justify-start text-muted-foreground hover:text-foreground text-sm gap-2"
+              onClick={handleSignOut}
+            >
+              <LogOut className="w-4 h-4 flex-shrink-0" />
+              {!collapsed && "Sign Out"}
+            </Button>
+          </TooltipTrigger>
+          {collapsed && <TooltipContent side="right">Sign Out</TooltipContent>}
+        </Tooltip>
       </SidebarFooter>
     </Sidebar>
   );

@@ -34,6 +34,7 @@ import TeamSettings from "./pages/app/TeamSettings.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import TermsOfUse from "./pages/TermsOfUse.tsx";
 import PrivacyPolicy from "./pages/PrivacyPolicy.tsx";
+import Onboarding from "./pages/app/Onboarding.tsx";
 
 const queryClient = new QueryClient();
 
@@ -73,6 +74,7 @@ const App = () => (
             <Route path="billing" element={<Billing />} />
             <Route path="billing/success" element={<BillingSuccess />} />
           </Route>
+          <Route path="onboarding" element={<Onboarding />} />
           <Route path="terms" element={<TermsOfUse />} />
           <Route path="privacy" element={<PrivacyPolicy />} />
           <Route path="*" element={<NotFound />} />

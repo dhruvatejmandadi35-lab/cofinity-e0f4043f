@@ -3,7 +3,11 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { Building2, Users, CalendarDays, MessageSquare, Plus, Globe, ArrowRight, Check, HelpCircle } from "lucide-react";
+import SetupChecklist from "@/components/SetupChecklist";
+import {
+  Building2, Users, CalendarDays, MessageSquare, Plus, Globe,
+  ArrowRight, Check, Hash,
+} from "lucide-react";
 import { format, parseISO } from "date-fns";
 
 const Dashboard = () => {
@@ -69,6 +73,10 @@ const Dashboard = () => {
     enabled: !!user,
   });
 
+  const hasOrgs = (orgs?.length ?? 0) > 0;
+  const hasTeams = teams.length > 0;
+  const isNewUser = !hasOrgs && !hasTeams;
+
   const stats = [
     { label: "Organizations", value: orgs?.length ?? 0, icon: Building2, color: "text-primary", bg: "bg-primary/10" },
     { label: "Teams", value: teams.length, icon: Users, color: "text-secondary", bg: "bg-secondary/10" },
@@ -91,24 +99,60 @@ const Dashboard = () => {
           <span className="gradient-text">{displayName}</span> 👋
         </h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          Here's what's happening in your workspace today.
+          {isNewUser
+            ? "Let's get you set up — it only takes a couple of minutes."
+            : "Here's what's happening in your workspace today."}
         </p>
       </div>
 
-      {/* Stats row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat) => (
-          <div key={stat.label} className="glass rounded-xl p-5 flex items-center gap-4">
-            <div className={`w-10 h-10 rounded-lg ${stat.bg} flex items-center justify-center flex-shrink-0`}>
-              <stat.icon className={`w-5 h-5 ${stat.color}`} />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground leading-none">{stat.value}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{stat.label}</p>
-            </div>
+      {/* New-user empty state: prominent CTAs */}
+      {isNewUser && (
+        <div className="glass rounded-2xl p-8 border border-primary/20 text-center space-y-5">
+          <div className="text-4xl">🚀</div>
+          <div>
+            <h2 className="text-xl font-bold text-foreground mb-1">You're not in any teams yet</h2>
+            <p className="text-muted-foreground text-sm">Create your own organization or join one with an invite code.</p>
           </div>
-        ))}
-      </div>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-sm mx-auto">
+            <Button
+              className="flex-1 gradient-primary text-white border-0 gap-2 h-11"
+              onClick={() => navigate("/app/organizations")}
+            >
+              <Building2 className="w-4 h-4" /> Create an Org
+            </Button>
+            <Button
+              variant="outline"
+              className="flex-1 gap-2 h-11"
+              onClick={() => navigate("/onboarding")}
+            >
+              <Hash className="w-4 h-4" /> Join with a Code
+            </Button>
+          </div>
+          <button
+            onClick={() => navigate("/app/explore")}
+            className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 mx-auto"
+          >
+            Or explore public organizations <ArrowRight className="w-3 h-3" />
+          </button>
+        </div>
+      )}
+
+      {/* Stats row */}
+      {!isNewUser && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {stats.map((stat) => (
+            <div key={stat.label} className="glass rounded-xl p-5 flex items-center gap-4">
+              <div className={`w-10 h-10 rounded-lg ${stat.bg} flex items-center justify-center flex-shrink-0`}>
+                <stat.icon className={`w-5 h-5 ${stat.color}`} />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-foreground leading-none">{stat.value}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{stat.label}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Upcoming Events */}
@@ -136,7 +180,6 @@ const Dashboard = () => {
                     key={ev.id}
                     className="flex items-center gap-3 p-3 rounded-lg bg-muted/20 border border-border hover:border-primary/30 transition-colors group"
                   >
-                    {/* Date badge */}
                     <div className="w-11 h-11 rounded-lg gradient-primary flex flex-col items-center justify-center text-white flex-shrink-0">
                       <span className="text-[9px] font-bold uppercase leading-none">{format(dt, "MMM")}</span>
                       <span className="text-base font-bold leading-tight">{format(dt, "d")}</span>
@@ -162,22 +205,24 @@ const Dashboard = () => {
           ) : (
             <div className="text-center py-8">
               <CalendarDays className="w-10 h-10 text-muted-foreground/30 mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">No upcoming events</p>
+              <p className="text-sm text-muted-foreground mb-3">No upcoming events yet</p>
               <Button
-                variant="ghost"
+                className="gradient-primary text-white border-0 gap-1.5 text-xs"
                 size="sm"
-                className="mt-2 text-primary"
                 onClick={() => navigate("/app/events/create")}
               >
-                Create your first event
+                <Plus className="w-3.5 h-3.5" /> Create your first event
               </Button>
             </div>
           )}
         </div>
 
-        {/* Right column: Teams + Quick actions */}
+        {/* Right column */}
         <div className="space-y-4">
-          {/* Recent Teams */}
+          {/* Setup Checklist */}
+          <SetupChecklist />
+
+          {/* Teams */}
           <div className="glass rounded-xl p-5 space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="font-semibold text-foreground flex items-center gap-2">
@@ -222,37 +267,52 @@ const Dashboard = () => {
                 })}
               </div>
             ) : (
-              <p className="text-xs text-muted-foreground text-center py-3">No teams yet</p>
+              <div className="py-4 text-center space-y-2">
+                <Users className="w-8 h-8 text-muted-foreground/30 mx-auto" />
+                <p className="text-xs text-muted-foreground">No teams yet</p>
+                {hasOrgs && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-primary text-xs gap-1"
+                    onClick={() => navigate("/app/organizations")}
+                  >
+                    <Plus className="w-3 h-3" /> Create a team
+                  </Button>
+                )}
+              </div>
             )}
           </div>
 
-          {/* Quick Actions */}
-          <div className="glass rounded-xl p-5 space-y-3">
-            <h2 className="font-semibold text-foreground text-sm">Quick Actions</h2>
-            <div className="space-y-2">
-              <Button
-                variant="outline"
-                className="w-full justify-start gap-2 text-sm"
-                onClick={() => navigate("/app/organizations")}
-              >
-                <Plus className="w-4 h-4 text-primary" /> Create Organization
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full justify-start gap-2 text-sm"
-                onClick={() => navigate("/app/events/create")}
-              >
-                <CalendarDays className="w-4 h-4 text-accent" /> Create Event
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full justify-start gap-2 text-sm"
-                onClick={() => navigate("/app/explore")}
-              >
-                <Globe className="w-4 h-4 text-secondary" /> Explore Teams
-              </Button>
+          {/* Quick Actions — only if user has some content */}
+          {!isNewUser && (
+            <div className="glass rounded-xl p-5 space-y-3">
+              <h2 className="font-semibold text-foreground text-sm">Quick Actions</h2>
+              <div className="space-y-2">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start gap-2 text-sm"
+                  onClick={() => navigate("/app/organizations")}
+                >
+                  <Plus className="w-4 h-4 text-primary" /> Create Organization
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start gap-2 text-sm"
+                  onClick={() => navigate("/app/events/create")}
+                >
+                  <CalendarDays className="w-4 h-4 text-accent" /> Create Event
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start gap-2 text-sm"
+                  onClick={() => navigate("/app/explore")}
+                >
+                  <Globe className="w-4 h-4 text-secondary" /> Explore Teams
+                </Button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
