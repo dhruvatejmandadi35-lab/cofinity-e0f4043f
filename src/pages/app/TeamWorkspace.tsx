@@ -186,8 +186,20 @@ const TeamWorkspace = () => {
         schema: "public",
         table: "messages",
         filter: `team_id=eq.${teamId}`,
-      }, () => {
-        queryClient.invalidateQueries({ queryKey: ["messages", teamId] });
+      }, async (payload) => {
+        const newMsg: any = payload.new;
+        // Skip thread replies in main chat
+        if (newMsg.parent_id) return;
+        // Fetch profile for the new message author
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("display_name, username")
+          .eq("id", newMsg.user_id)
+          .maybeSingle();
+        queryClient.setQueryData(["messages", teamId], (old: any[] = []) => {
+          if (old.some((m) => m.id === newMsg.id)) return old;
+          return [...old, { ...newMsg, profiles: profile }];
+        });
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
