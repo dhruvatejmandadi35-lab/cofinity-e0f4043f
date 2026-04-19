@@ -43,7 +43,7 @@ export default function TeamLeaderboard({ teamId }: Props) {
         .eq("team_id", teamId)
         .eq("status", "active");
 
-      const userIds = [...new Set((members || []).map((m: any) => m.user_id))];
+      const userIds = [...new Set((members || []).map((m: any) => m.user_id as string))] as string[];
       if (!userIds.length) return [];
 
       const [pointsData, allTimeData, profiles] = await Promise.all([
