@@ -150,30 +150,6 @@ export default function LandingHero() {
             </Button>
           </div>
 
-          {/* Social proof */}
-          <div
-            className="flex items-center gap-4 pt-2"
-            style={{
-              transition: "all 0.8s cubic-bezier(0.16,1,0.3,1) 0.55s",
-              opacity: visible ? 1 : 0,
-              transform: visible ? "translateY(0)" : "translateY(16px)",
-            }}
-          >
-            <div className="flex -space-x-2">
-              {["#60a5fa", "#c084fc", "#fb923c", "#4ade80", "#fbbf24"].map((c, i) => (
-                <div
-                  key={i}
-                  className="w-8 h-8 rounded-full border-2 border-background flex items-center justify-center text-xs font-bold"
-                  style={{ backgroundColor: c + "30", borderColor: c + "50", color: c }}
-                >
-                  {["A", "B", "C", "D", "E"][i]}
-                </div>
-              ))}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              <span className="text-foreground font-semibold">2,400+</span> members already using Cofinity
-            </p>
-          </div>
         </div>
 
         {/* Right — 3D floating cards */}
