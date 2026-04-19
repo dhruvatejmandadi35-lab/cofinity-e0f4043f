@@ -64,7 +64,7 @@ export default function WelcomeModal({ teamId, open, onClose }: Props) {
   const { data: pinnedAnnouncements } = useQuery({
     queryKey: ["welcome-pinned", teamId],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("announcements")
         .select("*")
         .eq("team_id", teamId)

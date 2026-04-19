@@ -32,7 +32,7 @@ export default function TeamHistory({ teamId }: Props) {
   const { data: announcements, isLoading: annLoading } = useQuery({
     queryKey: ["history-announcements", teamId],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("announcements")
         .select("*, profiles:author_id(display_name, username)")
         .eq("team_id", teamId)

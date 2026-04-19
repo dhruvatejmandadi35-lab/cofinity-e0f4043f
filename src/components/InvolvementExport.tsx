@@ -63,7 +63,7 @@ export default function InvolvementExport() {
   const { data: announcements } = useQuery({
     queryKey: ["involvement-announcements", user?.id],
     queryFn: async () => {
-      const { count } = await supabase
+      const { count } = await (supabase as any)
         .from("announcements")
         .select("*", { count: "exact", head: true })
         .eq("author_id", user!.id);
