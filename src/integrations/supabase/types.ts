@@ -123,21 +123,30 @@ export type Database = {
         Row: {
           content: string
           created_at: string
+          edited_at: string | null
           id: string
+          is_pinned: boolean
+          parent_id: string | null
           team_id: string
           user_id: string
         }
         Insert: {
           content: string
           created_at?: string
+          edited_at?: string | null
           id?: string
+          is_pinned?: boolean
+          parent_id?: string | null
           team_id: string
           user_id: string
         }
         Update: {
           content?: string
           created_at?: string
+          edited_at?: string | null
           id?: string
+          is_pinned?: boolean
+          parent_id?: string | null
           team_id?: string
           user_id?: string
         }
@@ -183,29 +192,47 @@ export type Database = {
       }
       profiles: {
         Row: {
+          attendance_streak: number
           avatar_url: string | null
           bio: string | null
+          birthday: string | null
+          birthday_public: boolean
           created_at: string
           display_name: string | null
           id: string
+          last_check_in_at: string | null
+          longest_streak: number
+          show_age: boolean
           updated_at: string
           username: string | null
         }
         Insert: {
+          attendance_streak?: number
           avatar_url?: string | null
           bio?: string | null
+          birthday?: string | null
+          birthday_public?: boolean
           created_at?: string
           display_name?: string | null
           id: string
+          last_check_in_at?: string | null
+          longest_streak?: number
+          show_age?: boolean
           updated_at?: string
           username?: string | null
         }
         Update: {
+          attendance_streak?: number
           avatar_url?: string | null
           bio?: string | null
+          birthday?: string | null
+          birthday_public?: boolean
           created_at?: string
           display_name?: string | null
           id?: string
+          last_check_in_at?: string | null
+          longest_streak?: number
+          show_age?: boolean
           updated_at?: string
           username?: string | null
         }
@@ -216,6 +243,7 @@ export type Database = {
           id: string
           joined_at: string
           role: Database["public"]["Enums"]["app_role"]
+          status: string
           team_id: string
           user_id: string
         }
@@ -223,6 +251,7 @@ export type Database = {
           id?: string
           joined_at?: string
           role?: Database["public"]["Enums"]["app_role"]
+          status?: string
           team_id: string
           user_id: string
         }
@@ -230,6 +259,7 @@ export type Database = {
           id?: string
           joined_at?: string
           role?: Database["public"]["Enums"]["app_role"]
+          status?: string
           team_id?: string
           user_id?: string
         }
@@ -245,30 +275,48 @@ export type Database = {
       }
       teams: {
         Row: {
+          banner_url: string | null
+          color: string | null
           created_at: string
+          custom_welcome_message: string | null
           department_id: string
           description: string | null
+          emoji: string | null
+          founded_date: string | null
           id: string
+          motto: string | null
           name: string
           owner_id: string
           privacy: Database["public"]["Enums"]["team_privacy"]
           updated_at: string
         }
         Insert: {
+          banner_url?: string | null
+          color?: string | null
           created_at?: string
+          custom_welcome_message?: string | null
           department_id: string
           description?: string | null
+          emoji?: string | null
+          founded_date?: string | null
           id?: string
+          motto?: string | null
           name: string
           owner_id: string
           privacy?: Database["public"]["Enums"]["team_privacy"]
           updated_at?: string
         }
         Update: {
+          banner_url?: string | null
+          color?: string | null
           created_at?: string
+          custom_welcome_message?: string | null
           department_id?: string
           description?: string | null
+          emoji?: string | null
+          founded_date?: string | null
           id?: string
+          motto?: string | null
           name?: string
           owner_id?: string
           privacy?: Database["public"]["Enums"]["team_privacy"]

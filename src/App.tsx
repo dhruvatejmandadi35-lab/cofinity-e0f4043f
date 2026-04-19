@@ -30,6 +30,7 @@ import PublicTeamPage from "./pages/PublicTeamPage.tsx";
 import Pricing from "./pages/Pricing.tsx";
 import Billing from "./pages/app/Billing.tsx";
 import BillingSuccess from "./pages/app/BillingSuccess.tsx";
+import TeamSettings from "./pages/app/TeamSettings.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -56,6 +57,7 @@ const App = () => (
             <Route path="teams/:teamId" element={<TeamWorkspace />} />
             <Route path="teams/:teamId/tasks" element={<TaskBoard />} />
             <Route path="teams/:teamId/docs" element={<TeamDocs />} />
+            <Route path="teams/:teamId/settings" element={<TeamSettings />} />
             <Route path="events" element={<Events />} />
             <Route path="events/create" element={<EventCreate />} />
             <Route path="events/:eventId" element={<EventDetail />} />

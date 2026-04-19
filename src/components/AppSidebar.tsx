@@ -67,10 +67,11 @@ export function AppSidebar() {
   const { data: teamMemberships } = useQuery({
     queryKey: ["sidebar-teams", user?.id],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("team_members")
-        .select("teams(id, name, privacy)")
-        .eq("user_id", user!.id);
+        .select("teams(id, name, privacy, emoji, color)")
+        .eq("user_id", user!.id)
+        .eq("status", "active");
       return (data || []).map((m: any) => m.teams).filter(Boolean);
     },
     enabled: !!user,
@@ -184,12 +185,20 @@ export function AppSidebar() {
                         onClick={() => navigate(`/app/teams/${team.id}`)}
                         className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-muted/40 text-muted-foreground hover:text-foreground transition-colors text-sm text-left"
                       >
-                        {team.privacy === "public" ? (
+                        {team.emoji ? (
+                          <span className="text-sm leading-none flex-shrink-0">{team.emoji}</span>
+                        ) : team.privacy === "public" ? (
                           <Globe className="w-3.5 h-3.5 flex-shrink-0 text-primary/70" />
                         ) : (
                           <Lock className="w-3.5 h-3.5 flex-shrink-0 text-muted-foreground/60" />
                         )}
                         <span className="truncate text-xs">{team.name}</span>
+                        {team.color && (
+                          <span
+                            className="w-1.5 h-1.5 rounded-full flex-shrink-0 ml-auto"
+                            style={{ background: team.color }}
+                          />
+                        )}
                       </button>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

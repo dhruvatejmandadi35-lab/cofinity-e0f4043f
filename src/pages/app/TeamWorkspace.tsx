@@ -7,19 +7,28 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, isToday } from "date-fns";
 import {
   Send, Lock, Globe, Hash, Users, CalendarDays, Plus, Check, HelpCircle,
   BarChart2, FileText, Clipboard, Pin, MoreHorizontal, ChevronDown, ChevronUp,
-  History, Activity
+  History, Activity, Trophy, Settings, Cake, GraduationCap,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import WelcomeModal from "@/components/WelcomeModal";
 import AnnouncementCard from "@/components/AnnouncementCard";
 import TeamHistory from "@/components/TeamHistory";
 import ClubHealthScore from "@/components/ClubHealthScore";
+import TeamLeaderboard from "@/components/TeamLeaderboard";
+import MemberSpotlight from "@/components/MemberSpotlight";
+import StreakBadge from "@/components/StreakBadge";
 import { useAwardPoints } from "@/hooks/useAwardPoints";
 
-type Tab = "chat" | "polls" | "docs" | "tasks" | "history";
+type Tab = "chat" | "polls" | "docs" | "tasks" | "history" | "leaderboard";
 
 const roleBadge = (role: string) => {
   if (role === "owner") return "bg-yellow-500/20 text-yellow-300 border-yellow-500/40";
@@ -79,9 +88,9 @@ const TeamWorkspace = () => {
   const { data: members } = useQuery({
     queryKey: ["team-members", teamId],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("team_members")
-        .select("*, profiles:user_id(display_name, username, avatar_url)")
+        .select("*, profiles:user_id(display_name, username, avatar_url, attendance_streak, birthday, birthday_public, show_age)")
         .eq("team_id", teamId!);
       return data || [];
     },
@@ -224,7 +233,8 @@ const TeamWorkspace = () => {
       setMessage("");
       awardPoints.mutate({ source: "message", teamId: teamId! });
     },
-    onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+    onError: (err: any) =>
+      toast({ title: "Error", description: err.message, variant: "destructive" }),
   });
 
   const pinMessage = useMutation({
@@ -249,11 +259,9 @@ const TeamWorkspace = () => {
         .select()
         .single();
       if (error) throw error;
-      const opts = pollOptions.filter((o) => o.trim()).map((label, i) => ({
-        poll_id: poll.id,
-        label,
-        position: i,
-      }));
+      const opts = pollOptions
+        .filter((o) => o.trim())
+        .map((label, i) => ({ poll_id: poll.id, label, position: i }));
       const { error: optErr } = await (supabase as any).from("poll_options").insert(opts);
       if (optErr) throw optErr;
     },
@@ -264,7 +272,8 @@ const TeamWorkspace = () => {
       setPollOptions(["", ""]);
       toast({ title: "Poll created!" });
     },
-    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+    onError: (e: any) =>
+      toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
   const vote = useMutation({
@@ -273,7 +282,9 @@ const TeamWorkspace = () => {
         (v: any) => v.poll_id === pollId && v.user_id === user!.id
       );
       if (existingVote) {
-        await (supabase as any).from("poll_votes").delete()
+        await (supabase as any)
+          .from("poll_votes")
+          .delete()
           .eq("poll_id", pollId)
           .eq("user_id", user!.id);
       }
@@ -285,7 +296,8 @@ const TeamWorkspace = () => {
       if (error && !error.message.includes("unique")) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["poll-votes", teamId] }),
-    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+    onError: (e: any) =>
+      toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
   const joinTeam = useMutation({
@@ -301,9 +313,41 @@ const TeamWorkspace = () => {
       queryClient.invalidateQueries({ queryKey: ["membership"] });
       queryClient.invalidateQueries({ queryKey: ["my-teams"] });
       queryClient.invalidateQueries({ queryKey: ["team-members", teamId] });
+      awardPoints.mutate({ source: "team_join" as any, teamId: teamId! });
       toast({ title: "Joined team!" });
     },
-    onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+    onError: (err: any) =>
+      toast({ title: "Error", description: err.message, variant: "destructive" }),
+  });
+
+  const moveToAlumni = useMutation({
+    mutationFn: async (memberId: string) => {
+      const { error } = await (supabase as any)
+        .from("team_members")
+        .update({ status: "alumni" })
+        .eq("id", memberId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["team-members", teamId] });
+      toast({ title: "Member moved to alumni" });
+    },
+    onError: (e: any) =>
+      toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const restoreMember = useMutation({
+    mutationFn: async (memberId: string) => {
+      const { error } = await (supabase as any)
+        .from("team_members")
+        .update({ status: "active" })
+        .eq("id", memberId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["team-members", teamId] });
+      toast({ title: "Member restored to active" });
+    },
   });
 
   const handleSend = (e: React.FormEvent) => {
@@ -312,34 +356,62 @@ const TeamWorkspace = () => {
     sendMessage.mutate();
   };
 
+  // Derived state
   const dept = (team as any)?.departments;
   const org = dept?.organizations;
+  const teamColor = (team as any)?.color || "#6366f1";
+  const teamEmoji = (team as any)?.emoji;
+  const teamMotto = (team as any)?.motto;
+  const foundedYear = (team as any)?.founded_date
+    ? new Date((team as any).founded_date).getFullYear()
+    : null;
+
+  const isAdmin = membership?.role === "owner" || membership?.role === "admin";
+  const myStatus = (membership as any)?.status || "active";
+  const isAlumni = myStatus === "alumni";
+
+  const activeMembers = (members || []).filter((m: any) => (m.status || "active") === "active");
+  const alumniMembers = (members || []).filter((m: any) => m.status === "alumni");
+
+  // Today's birthdays among active members
+  const todayBirthdays = activeMembers.filter((m: any) => {
+    const bp = m.profiles;
+    if (!bp?.birthday || !bp?.birthday_public) return false;
+    const bday = new Date(bp.birthday);
+    return isToday(new Date(new Date().getFullYear(), bday.getMonth(), bday.getDate()));
+  });
 
   const TABS: { id: Tab; icon: any; label: string }[] = [
     { id: "chat", icon: Hash, label: "Chat" },
     { id: "polls", icon: BarChart2, label: "Polls" },
     { id: "docs", icon: FileText, label: "Docs" },
     { id: "tasks", icon: Clipboard, label: "Tasks" },
+    { id: "leaderboard", icon: Trophy, label: "Leaderboard" },
     { id: "history", icon: History, label: "History" },
   ];
-
-  const isAdmin = membership?.role === "owner" || membership?.role === "admin";
 
   return (
     <div className="h-[calc(100vh-3.5rem)] flex overflow-hidden -m-6">
       {/* Left Panel */}
       <div className="w-48 flex-shrink-0 flex flex-col border-r border-border bg-muted/10">
-        <div className="p-3 border-b border-border">
+        <div className="p-3 border-b border-border" style={{ borderLeftColor: teamColor, borderLeftWidth: 3 }}>
           <div className="flex items-center gap-1.5">
-            <h2 className="text-sm font-bold text-foreground truncate">{team?.name || "..."}</h2>
+            {teamEmoji && <span className="text-base leading-none">{teamEmoji}</span>}
+            <h2 className="text-sm font-bold text-foreground truncate">{team?.name || "…"}</h2>
             {team?.privacy === "public" ? (
               <Globe className="w-3 h-3 text-primary flex-shrink-0" />
             ) : (
               <Lock className="w-3 h-3 text-muted-foreground flex-shrink-0" />
             )}
           </div>
-          {org && (
+          {teamMotto && (
+            <p className="text-[10px] text-muted-foreground italic truncate mt-0.5">"{teamMotto}"</p>
+          )}
+          {!teamMotto && org && (
             <p className="text-[10px] text-muted-foreground truncate mt-0.5">{org.name}</p>
+          )}
+          {foundedYear && (
+            <p className="text-[10px] text-muted-foreground/60">Est. {foundedYear}</p>
           )}
         </div>
 
@@ -354,9 +426,10 @@ const TeamWorkspace = () => {
               onClick={() => setActiveTab(t.id)}
               className={`flex items-center gap-1.5 w-full px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${
                 activeTab === t.id
-                  ? "bg-primary/10 text-primary"
+                  ? "text-primary"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
               }`}
+              style={activeTab === t.id ? { background: `${teamColor}1a` } : undefined}
             >
               <t.icon className="w-3.5 h-3.5" />
               {t.label}
@@ -364,23 +437,37 @@ const TeamWorkspace = () => {
           ))}
         </div>
 
-        {/* Members */}
+        {/* Active Members */}
         <div className="flex-1 overflow-y-auto p-2 mt-1">
           <div className="flex items-center gap-1 mb-1 px-1">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
               Members
             </p>
-            {members && (
-              <span className="text-[10px] text-muted-foreground">— {members.length}</span>
+            {activeMembers.length > 0 && (
+              <span className="text-[10px] text-muted-foreground">— {activeMembers.length}</span>
             )}
           </div>
           <div className="space-y-0.5">
-            {members?.map((m) => {
-              const profile = (m as any).profiles;
+            {activeMembers.map((m: any) => {
+              const profile = m.profiles;
               const name = profile?.display_name || profile?.username || "Unknown";
               const initials = name.slice(0, 2).toUpperCase();
+              const streak = profile?.attendance_streak || 0;
+              const hasBirthday =
+                profile?.birthday_public &&
+                profile?.birthday &&
+                isToday(
+                  new Date(
+                    new Date().getFullYear(),
+                    new Date(profile.birthday).getMonth(),
+                    new Date(profile.birthday).getDate()
+                  )
+                );
               return (
-                <div key={m.id} className="flex items-center gap-1.5 px-1 py-1 rounded-md hover:bg-muted/30">
+                <div
+                  key={m.id}
+                  className="flex items-center gap-1.5 px-1 py-1 rounded-md hover:bg-muted/30"
+                >
                   <div
                     className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0"
                     style={{ background: "linear-gradient(135deg, hsl(220 72% 68%), hsl(252 58% 62%))" }}
@@ -388,10 +475,43 @@ const TeamWorkspace = () => {
                     {initials}
                   </div>
                   <span className="text-[11px] text-foreground truncate flex-1">{name}</span>
+                  {hasBirthday && <span title="Birthday today!">🎂</span>}
+                  {streak >= 2 && (
+                    <span className="text-[9px] text-orange-400 font-bold flex-shrink-0">🔥{streak}</span>
+                  )}
                 </div>
               );
             })}
           </div>
+
+          {/* Alumni section in sidebar */}
+          {alumniMembers.length > 0 && (
+            <div className="mt-3">
+              <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider font-semibold px-1 mb-1 flex items-center gap-1">
+                <GraduationCap className="w-3 h-3" /> Alumni
+              </p>
+              {alumniMembers.map((m: any) => {
+                const profile = m.profiles;
+                const name = profile?.display_name || profile?.username || "Unknown";
+                const initials = name.slice(0, 2).toUpperCase();
+                return (
+                  <div
+                    key={m.id}
+                    className="flex items-center gap-1.5 px-1 py-1 rounded-md opacity-50"
+                  >
+                    <div
+                      className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0 grayscale"
+                      style={{ background: "linear-gradient(135deg, hsl(220 72% 68%), hsl(252 58% 62%))" }}
+                    >
+                      {initials}
+                    </div>
+                    <span className="text-[11px] text-muted-foreground truncate flex-1">{name}</span>
+                    <span className="text-[9px]">🎓</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 
@@ -424,6 +544,17 @@ const TeamWorkspace = () => {
               Open Docs →
             </Button>
           )}
+          {isAdmin && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="ml-auto h-7 w-7 p-0 text-muted-foreground hover:text-primary"
+              title="Team Settings"
+              onClick={() => navigate(`/app/teams/${teamId}/settings`)}
+            >
+              <Settings className="w-3.5 h-3.5" />
+            </Button>
+          )}
         </div>
 
         {!membership ? (
@@ -441,13 +572,13 @@ const TeamWorkspace = () => {
                 onClick={() => joinTeam.mutate()}
                 disabled={joinTeam.isPending}
               >
-                {joinTeam.isPending ? "Joining..." : "Join Team"}
+                {joinTeam.isPending ? "Joining…" : "Join Team"}
               </Button>
             </div>
           </div>
         ) : (
           <>
-            {/* CHAT TAB */}
+            {/* ── CHAT TAB ── */}
             {activeTab === "chat" && (
               <>
                 {/* Pinned messages */}
@@ -458,12 +589,40 @@ const TeamWorkspace = () => {
                     </p>
                     {pinnedMessages?.map((msg: any) => (
                       <p key={msg.id} className="text-xs text-muted-foreground truncate">
-                        <span className="text-foreground/70 font-medium">{(msg as any).profiles?.display_name}: </span>
+                        <span className="text-foreground/70 font-medium">
+                          {msg.profiles?.display_name}:{" "}
+                        </span>
                         {msg.content}
                       </p>
                     ))}
                   </div>
                 )}
+
+                {/* Birthday banner */}
+                {todayBirthdays.length > 0 && (
+                  <div className="mx-4 mt-2 mb-0 p-3 rounded-xl bg-gradient-to-r from-pink-500/10 to-rose-500/10 border border-pink-500/20">
+                    <p className="text-sm font-semibold text-foreground flex items-center gap-2">
+                      <Cake className="w-4 h-4 text-pink-400" />
+                      {todayBirthdays.map((m: any) => {
+                        const name = m.profiles?.display_name || m.profiles?.username;
+                        const bday = new Date(m.profiles.birthday);
+                        const age =
+                          m.profiles.show_age
+                            ? new Date().getFullYear() - bday.getFullYear()
+                            : null;
+                        return (
+                          <span key={m.id}>
+                            🎉 Today is <strong>{name}</strong>'s birthday
+                            {age ? ` (turning ${age})` : ""}! Wish them well 🎂
+                          </span>
+                        );
+                      })}
+                    </p>
+                  </div>
+                )}
+
+                {/* Weekly member spotlight */}
+                <MemberSpotlight teamId={teamId!} />
 
                 <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
                   {messages?.length === 0 && (
@@ -474,7 +633,10 @@ const TeamWorkspace = () => {
                   )}
                   {messages?.map((msg) => {
                     const isMe = msg.user_id === user?.id;
-                    const name = (msg as any).profiles?.display_name || (msg as any).profiles?.username || "Unknown";
+                    const name =
+                      (msg as any).profiles?.display_name ||
+                      (msg as any).profiles?.username ||
+                      "Unknown";
                     const initials = name.slice(0, 2).toUpperCase();
                     const isPinned = (msg as any).is_pinned;
                     return (
@@ -485,14 +647,21 @@ const TeamWorkspace = () => {
                         {!isMe && (
                           <div
                             className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 mt-0.5"
-                            style={{ background: "linear-gradient(135deg, hsl(220 72% 68%), hsl(252 58% 62%))" }}
+                            style={{
+                              background:
+                                "linear-gradient(135deg, hsl(220 72% 68%), hsl(252 58% 62%))",
+                            }}
                           >
                             {initials}
                           </div>
                         )}
-                        <div className={`max-w-[72%] ${isMe ? "items-end" : "items-start"} flex flex-col`}>
+                        <div
+                          className={`max-w-[72%] ${isMe ? "items-end" : "items-start"} flex flex-col`}
+                        >
                           {!isMe && (
-                            <p className="text-[11px] font-semibold text-primary mb-0.5 px-1">{name}</p>
+                            <p className="text-[11px] font-semibold text-primary mb-0.5 px-1">
+                              {name}
+                            </p>
                           )}
                           <div
                             className={`px-3 py-2 rounded-xl text-sm ${
@@ -508,13 +677,17 @@ const TeamWorkspace = () => {
                             <p className="text-[10px] text-muted-foreground mt-0.5 px-1">
                               {format(parseISO(msg.created_at), "h:mm a")}
                             </p>
-                            <button
-                              onClick={() => pinMessage.mutate({ msgId: msg.id, pin: !isPinned })}
-                              className="text-[10px] text-muted-foreground hover:text-primary px-1 mt-0.5"
-                              title={isPinned ? "Unpin" : "Pin message"}
-                            >
-                              <Pin className="w-3 h-3" />
-                            </button>
+                            {isAdmin && (
+                              <button
+                                onClick={() =>
+                                  pinMessage.mutate({ msgId: msg.id, pin: !isPinned })
+                                }
+                                className="text-[10px] text-muted-foreground hover:text-primary px-1 mt-0.5"
+                                title={isPinned ? "Unpin" : "Pin message"}
+                              >
+                                <Pin className="w-3 h-3" />
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -523,32 +696,45 @@ const TeamWorkspace = () => {
                   <div ref={messagesEndRef} />
                 </div>
 
-                <form onSubmit={handleSend} className="flex gap-2 px-4 py-3 border-t border-border">
-                  <Input
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    placeholder="Message # chat"
-                    className="flex-1 bg-muted/20"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        if (message.trim()) sendMessage.mutate();
-                      }
-                    }}
-                  />
-                  <Button
-                    type="submit"
-                    size="icon"
-                    className="gradient-primary text-white border-0"
-                    disabled={!message.trim() || sendMessage.isPending}
+                {/* Alumni can't post */}
+                {isAlumni ? (
+                  <div className="px-4 py-3 border-t border-border text-center">
+                    <p className="text-xs text-muted-foreground flex items-center justify-center gap-1.5">
+                      <GraduationCap className="w-3.5 h-3.5" />
+                      Alumni have read-only access to this channel
+                    </p>
+                  </div>
+                ) : (
+                  <form
+                    onSubmit={handleSend}
+                    className="flex gap-2 px-4 py-3 border-t border-border"
                   >
-                    <Send className="w-4 h-4" />
-                  </Button>
-                </form>
+                    <Input
+                      value={message}
+                      onChange={(e) => setMessage(e.target.value)}
+                      placeholder="Message # chat"
+                      className="flex-1 bg-muted/20"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          if (message.trim()) sendMessage.mutate();
+                        }
+                      }}
+                    />
+                    <Button
+                      type="submit"
+                      size="icon"
+                      className="gradient-primary text-white border-0"
+                      disabled={!message.trim() || sendMessage.isPending}
+                    >
+                      <Send className="w-4 h-4" />
+                    </Button>
+                  </form>
+                )}
               </>
             )}
 
-            {/* POLLS TAB */}
+            {/* ── POLLS TAB ── */}
             {activeTab === "polls" && (
               <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 <div className="flex items-center justify-between">
@@ -565,7 +751,7 @@ const TeamWorkspace = () => {
                 {showPollForm && (
                   <div className="glass rounded-xl p-4 space-y-3">
                     <Input
-                      placeholder="Ask a question..."
+                      placeholder="Ask a question…"
                       value={pollQuestion}
                       onChange={(e) => setPollQuestion(e.target.value)}
                       className="bg-muted/20 text-sm"
@@ -600,11 +786,20 @@ const TeamWorkspace = () => {
                         size="sm"
                         className="gradient-primary text-white border-0 h-7 text-xs"
                         onClick={() => createPoll.mutate()}
-                        disabled={createPoll.isPending || !pollQuestion.trim() || pollOptions.filter((o) => o.trim()).length < 2}
+                        disabled={
+                          createPoll.isPending ||
+                          !pollQuestion.trim() ||
+                          pollOptions.filter((o) => o.trim()).length < 2
+                        }
                       >
                         Create Poll
                       </Button>
-                      <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setShowPollForm(false)}>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 text-xs"
+                        onClick={() => setShowPollForm(false)}
+                      >
                         Cancel
                       </Button>
                     </div>
@@ -620,8 +815,11 @@ const TeamWorkspace = () => {
                 )}
 
                 {polls?.map((poll: any) => {
-                  const totalVotes = pollVotes?.filter((v: any) => v.poll_id === poll.id).length || 0;
-                  const myVote = pollVotes?.find((v: any) => v.poll_id === poll.id && v.user_id === user?.id);
+                  const totalVotes =
+                    pollVotes?.filter((v: any) => v.poll_id === poll.id).length || 0;
+                  const myVote = pollVotes?.find(
+                    (v: any) => v.poll_id === poll.id && v.user_id === user?.id
+                  );
                   return (
                     <div key={poll.id} className="glass rounded-xl p-4 space-y-3">
                       <div>
@@ -631,29 +829,34 @@ const TeamWorkspace = () => {
                         </p>
                       </div>
                       <div className="space-y-2">
-                        {poll.poll_options?.sort((a: any, b: any) => a.position - b.position).map((opt: any) => {
-                          const optVotes = pollVotes?.filter((v: any) => v.option_id === opt.id).length || 0;
-                          const pct = totalVotes > 0 ? Math.round((optVotes / totalVotes) * 100) : 0;
-                          const isMyVote = myVote?.option_id === opt.id;
-                          return (
-                            <button
-                              key={opt.id}
-                              onClick={() => vote.mutate({ pollId: poll.id, optionId: opt.id })}
-                              className={`w-full relative rounded-lg border text-left p-2 transition-colors overflow-hidden ${
-                                isMyVote ? "border-primary/50 text-primary" : "border-border hover:border-primary/30 text-foreground"
-                              }`}
-                            >
-                              <div
-                                className={`absolute inset-0 ${isMyVote ? "bg-primary/10" : "bg-muted/20"}`}
-                                style={{ width: `${pct}%`, transition: "width 0.3s ease" }}
-                              />
-                              <div className="relative flex items-center justify-between">
-                                <span className="text-xs font-medium">{opt.label}</span>
-                                <span className="text-xs text-muted-foreground">{pct}%</span>
-                              </div>
-                            </button>
-                          );
-                        })}
+                        {poll.poll_options
+                          ?.sort((a: any, b: any) => a.position - b.position)
+                          .map((opt: any) => {
+                            const optVotes =
+                              pollVotes?.filter((v: any) => v.option_id === opt.id).length || 0;
+                            const pct = totalVotes > 0 ? Math.round((optVotes / totalVotes) * 100) : 0;
+                            const isMyVote = myVote?.option_id === opt.id;
+                            return (
+                              <button
+                                key={opt.id}
+                                onClick={() => vote.mutate({ pollId: poll.id, optionId: opt.id })}
+                                className={`w-full relative rounded-lg border text-left p-2 transition-colors overflow-hidden ${
+                                  isMyVote
+                                    ? "border-primary/50 text-primary"
+                                    : "border-border hover:border-primary/30 text-foreground"
+                                }`}
+                              >
+                                <div
+                                  className={`absolute inset-0 ${isMyVote ? "bg-primary/10" : "bg-muted/20"}`}
+                                  style={{ width: `${pct}%`, transition: "width 0.3s ease" }}
+                                />
+                                <div className="relative flex items-center justify-between">
+                                  <span className="text-xs font-medium">{opt.label}</span>
+                                  <span className="text-xs text-muted-foreground">{pct}%</span>
+                                </div>
+                              </button>
+                            );
+                          })}
                       </div>
                     </div>
                   );
@@ -661,7 +864,7 @@ const TeamWorkspace = () => {
               </div>
             )}
 
-            {/* DOCS TAB (preview) */}
+            {/* ── DOCS TAB ── */}
             {activeTab === "docs" && (
               <div className="flex-1 flex items-center justify-center p-6">
                 <div className="text-center space-y-3">
@@ -678,7 +881,7 @@ const TeamWorkspace = () => {
               </div>
             )}
 
-            {/* TASKS TAB (preview) */}
+            {/* ── TASKS TAB ── */}
             {activeTab === "tasks" && (
               <div className="flex-1 flex items-center justify-center p-6">
                 <div className="text-center space-y-3">
@@ -695,13 +898,20 @@ const TeamWorkspace = () => {
               </div>
             )}
 
-            {/* HISTORY TAB */}
+            {/* ── LEADERBOARD TAB ── */}
+            {activeTab === "leaderboard" && (
+              <TeamLeaderboard teamId={teamId!} />
+            )}
+
+            {/* ── HISTORY TAB ── */}
             {activeTab === "history" && (
               <div className="flex-1 overflow-y-auto p-4">
                 <div className="max-w-2xl mx-auto">
                   <div className="mb-4">
                     <h2 className="text-sm font-semibold text-foreground">Team Archive</h2>
-                    <p className="text-xs text-muted-foreground mt-0.5">Complete history of events, announcements, and leadership</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Complete history of events, announcements, and leadership
+                    </p>
                   </div>
                   <TeamHistory teamId={teamId!} />
                 </div>
@@ -722,6 +932,14 @@ const TeamWorkspace = () => {
 
       {/* Right Panel */}
       <div className="w-64 flex-shrink-0 flex flex-col border-l border-border bg-muted/10 overflow-y-auto">
+        {/* Team banner */}
+        {(team as any)?.banner_url && (
+          <div
+            className="h-20 bg-cover bg-center flex-shrink-0"
+            style={{ backgroundImage: `url(${(team as any).banner_url})` }}
+          />
+        )}
+
         {team?.description && (
           <div className="p-3 border-b border-border">
             <p className="text-[11px] text-muted-foreground leading-relaxed">{team.description}</p>
@@ -737,6 +955,7 @@ const TeamWorkspace = () => {
           </div>
         )}
 
+        {/* Upcoming Events */}
         <div className="p-3">
           <div className="flex items-center justify-between mb-2">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold flex items-center gap-1">
@@ -752,7 +971,9 @@ const TeamWorkspace = () => {
                   className="p-2 rounded-lg bg-muted/20 border border-border hover:border-primary/30 transition-colors"
                 >
                   <div className="flex items-start gap-2">
-                    <div className="w-8 h-8 rounded-md gradient-primary flex flex-col items-center justify-center text-white flex-shrink-0">
+                    <div
+                      className="w-8 h-8 rounded-md gradient-primary flex flex-col items-center justify-center text-white flex-shrink-0"
+                    >
                       <span className="text-[9px] font-bold uppercase leading-none">
                         {format(parseISO(ev.date_time), "MMM")}
                       </span>
@@ -792,45 +1013,107 @@ const TeamWorkspace = () => {
           </Button>
         </div>
 
+        {/* Members grid with alumni management */}
         <div className="p-3 border-t border-border mt-auto">
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-2 flex items-center gap-1">
-            <Users className="w-3 h-3" /> {members?.length || 0} Members
+            <Users className="w-3 h-3" /> {activeMembers.length} Active Members
           </p>
           <div className="flex flex-wrap gap-1">
-            {members?.slice(0, 8).map((m) => {
-              const profile = (m as any).profiles;
+            {activeMembers.slice(0, 8).map((m: any) => {
+              const profile = m.profiles;
               const name = profile?.display_name || profile?.username || "?";
               const initials = name.slice(0, 2).toUpperCase();
+              const streak = profile?.attendance_streak || 0;
               return (
-                <div
-                  key={m.id}
-                  title={`${name} (${roleLabel(m.role)})`}
-                  className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold cursor-default"
-                  style={{
-                    background:
-                      m.role === "owner"
-                        ? "linear-gradient(135deg, hsl(48 90% 55%), hsl(35 90% 55%))"
-                        : m.role === "admin"
-                        ? "linear-gradient(135deg, hsl(220 72% 60%), hsl(220 72% 80%))"
-                        : "linear-gradient(135deg, hsl(220 72% 68%), hsl(252 58% 62%))",
-                  }}
-                >
-                  {initials}
+                <div key={m.id} className="relative group/member">
+                  <div
+                    title={`${name} (${roleLabel(m.role)})${streak >= 2 ? ` · 🔥${streak}` : ""}`}
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold cursor-default text-white"
+                    style={{
+                      background:
+                        m.role === "owner"
+                          ? "linear-gradient(135deg, hsl(48 90% 55%), hsl(35 90% 55%))"
+                          : m.role === "admin"
+                          ? "linear-gradient(135deg, hsl(220 72% 60%), hsl(220 72% 80%))"
+                          : "linear-gradient(135deg, hsl(220 72% 68%), hsl(252 58% 62%))",
+                    }}
+                  >
+                    {initials}
+                  </div>
+                  {/* Admin actions dropdown */}
+                  {isAdmin && m.user_id !== user?.id && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-background border border-border rounded-full items-center justify-center hidden group-hover/member:flex">
+                          <MoreHorizontal className="w-2.5 h-2.5 text-muted-foreground" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="text-xs">
+                        <DropdownMenuItem onClick={() => moveToAlumni.mutate(m.id)}>
+                          <GraduationCap className="w-3.5 h-3.5 mr-2" />
+                          Move to Alumni
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                 </div>
               );
             })}
-            {(members?.length || 0) > 8 && (
-              <div className="w-7 h-7 rounded-full bg-muted/40 flex items-center justify-center text-[10px] text-muted-foreground">
-                +{(members?.length || 0) - 8}
+            {activeMembers.length > 8 && (
+              <div className="w-8 h-8 rounded-full bg-muted/40 flex items-center justify-center text-[10px] text-muted-foreground">
+                +{activeMembers.length - 8}
               </div>
             )}
           </div>
+
+          {/* Alumni subsection */}
+          {alumniMembers.length > 0 && (
+            <div className="mt-3">
+              <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider font-semibold mb-1.5 flex items-center gap-1">
+                <GraduationCap className="w-3 h-3" /> {alumniMembers.length} Alumni
+              </p>
+              <div className="flex flex-wrap gap-1">
+                {alumniMembers.slice(0, 6).map((m: any) => {
+                  const profile = m.profiles;
+                  const name = profile?.display_name || profile?.username || "?";
+                  const initials = name.slice(0, 2).toUpperCase();
+                  return (
+                    <div key={m.id} className="relative group/alumnus">
+                      <div
+                        title={`${name} (Alumni)`}
+                        className="w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold cursor-default text-white opacity-50 grayscale"
+                        style={{
+                          background: "linear-gradient(135deg, hsl(220 72% 68%), hsl(252 58% 62%))",
+                        }}
+                      >
+                        {initials}
+                      </div>
+                      {isAdmin && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-background border border-border rounded-full items-center justify-center hidden group-hover/alumnus:flex">
+                              <MoreHorizontal className="w-2.5 h-2.5 text-muted-foreground" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="text-xs">
+                            <DropdownMenuItem onClick={() => restoreMember.mutate(m.id)}>
+                              Restore to Active
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 
-  function setTab(tab: Tab) {
+  function setActiveTabLocal(tab: Tab) {
     setActiveTab(tab);
   }
 };

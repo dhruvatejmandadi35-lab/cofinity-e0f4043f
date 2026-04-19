@@ -2,32 +2,64 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useToast } from "@/hooks/use-toast";
+import { useConfetti } from "@/hooks/useConfetti";
 
-type PointSource = "event_rsvp" | "event_checkin" | "message" | "event_create" | "announcement" | "member_invite";
+type PointSource =
+  | "event_rsvp"
+  | "event_checkin"
+  | "message"
+  | "event_create"
+  | "announcement"
+  | "member_invite"
+  | "team_join";
 
 const POINT_VALUES: Record<PointSource, number> = {
   event_rsvp: 10,
-  event_checkin: 15,
+  event_checkin: 50,
   message: 2,
-  event_create: 20,
-  announcement: 5,
-  member_invite: 25,
+  event_create: 100,
+  announcement: 25,
+  member_invite: 75,
+  team_join: 20,
 };
 
-const BADGE_THRESHOLDS: { badgeName: string; check: (totals: { events: number; organized: number; teams: number; points: number }) => boolean }[] = [
-  { badgeName: "First Event", check: (t) => t.events >= 1 },
+interface BadgeCheck {
+  badgeName: string;
+  check: (totals: {
+    events: number;
+    organized: number;
+    teams: number;
+    points: number;
+    streak: number;
+    invites: number;
+    announcements: number;
+  }) => boolean;
+}
+
+const BADGE_THRESHOLDS: BadgeCheck[] = [
+  { badgeName: "First Timer",   check: (t) => t.events >= 1 },
+  { badgeName: "First Event",   check: (t) => t.events >= 1 },
   { badgeName: "Active Member", check: (t) => t.events >= 10 },
+  { badgeName: "Veteran",       check: (t) => t.events >= 25 },
+  { badgeName: "On Fire",       check: (t) => t.streak >= 5 },
+  { badgeName: "Organizer",     check: (t) => t.organized >= 1 },
   { badgeName: "Event Organizer", check: (t) => t.organized >= 5 },
-  { badgeName: "Team Player", check: (t) => t.teams >= 3 },
-  { badgeName: "Connector", check: (t) => t.teams >= 5 },
+  { badgeName: "Event Master",  check: (t) => t.organized >= 10 },
+  { badgeName: "Team Player",   check: (t) => t.teams >= 3 },
+  { badgeName: "Explorer",      check: (t) => t.teams >= 5 },
+  { badgeName: "Connector",     check: (t) => t.teams >= 5 },
+  { badgeName: "Recruiter",     check: (t) => t.invites >= 3 },
+  { badgeName: "Team Builder",  check: (t) => t.invites >= 10 },
+  { badgeName: "Voice",         check: (t) => t.announcements >= 10 },
   { badgeName: "Point Collector", check: (t) => t.points >= 500 },
-  { badgeName: "Legend", check: (t) => t.points >= 1500 },
+  { badgeName: "Legend",        check: (t) => t.points >= 1500 },
 ];
 
 export function useAwardPoints() {
   const { user } = useAuthReady();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { fireBadge } = useConfetti();
 
   return useMutation({
     mutationFn: async ({
@@ -45,7 +77,7 @@ export function useAwardPoints() {
 
       const points = POINT_VALUES[source];
 
-      // Throttle message points: max 10 messages rewarded per day
+      // Throttle: max 10 message points per day
       if (source === "message") {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -78,13 +110,20 @@ export function useAwardPoints() {
         org_id: orgId || null,
       });
 
-      // Check badge thresholds
-      const [eventsAttended, eventsOrganized, teamCount, totalPoints] = await Promise.all([
+      // Fetch all totals needed for badge checks
+      const [
+        eventsAttended,
+        eventsOrganized,
+        teamCount,
+        rawPoints,
+        streakData,
+        inviteCount,
+        announcementCount,
+      ] = await Promise.all([
         (supabase as any)
-          .from("event_attendees")
+          .from("event_check_ins")
           .select("*", { count: "exact", head: true })
           .eq("user_id", user.id)
-          .eq("status", "going")
           .then((r: any) => r.count || 0),
         supabase
           .from("events")
@@ -100,10 +139,35 @@ export function useAwardPoints() {
           .from("user_points")
           .select("points")
           .eq("user_id", user.id)
-          .then((r: any) => (r.data || []).reduce((sum: number, row: any) => sum + row.points, 0) + points),
+          .then((r: any) => (r.data || []).reduce((s: number, row: any) => s + row.points, 0) + points),
+        supabase
+          .from("profiles")
+          .select("attendance_streak")
+          .eq("id", user.id)
+          .single()
+          .then((r) => (r.data as any)?.attendance_streak || 0),
+        (supabase as any)
+          .from("user_points")
+          .select("*", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .eq("source", "member_invite")
+          .then((r: any) => r.count || 0),
+        (supabase as any)
+          .from("announcements")
+          .select("*", { count: "exact", head: true })
+          .eq("author_id", user.id)
+          .then((r: any) => r.count || 0),
       ]);
 
-      const totals = { events: eventsAttended, organized: eventsOrganized, teams: teamCount, points: totalPoints };
+      const totals = {
+        events: eventsAttended,
+        organized: eventsOrganized,
+        teams: teamCount,
+        points: rawPoints,
+        streak: streakData,
+        invites: inviteCount,
+        announcements: announcementCount,
+      };
 
       const { data: existingBadges } = await (supabase as any)
         .from("user_badges")
@@ -119,12 +183,18 @@ export function useAwardPoints() {
             .eq("name", threshold.badgeName)
             .single();
           if (badge) {
-            await (supabase as any)
+            const { error: badgeErr } = await (supabase as any)
               .from("user_badges")
-              .insert({ user_id: user.id, badge_id: badge.id })
-              .onConflict()
-              .ignoreDuplicates();
-            toast({ title: `Badge unlocked: ${threshold.badgeName} 🎉`, description: "Check your profile to see all badges." });
+              .insert({ user_id: user.id, badge_id: badge.id });
+            if (badgeErr && badgeErr.code !== "23505") throw badgeErr;
+            if (!badgeErr) {
+              fireBadge();
+              toast({
+                title: `Badge unlocked: ${threshold.badgeName} 🎉`,
+                description: "Check your profile to see all badges.",
+              });
+              earnedNames.add(threshold.badgeName);
+            }
           }
         }
       }
