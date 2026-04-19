@@ -396,3 +396,304 @@
   transform: perspective(900px) translateY(0) rotateX(0deg);
   transition: opacity 0.8s ease-out, transform 0.8s cubic-bezier(0.16,1,0.3,1);
 }
+
+/* =============================================
+   CHAT & INTERACTION ANIMATIONS
+   ============================================= */
+
+/* Message bubble spring pop (sent message) */
+@keyframes spring-pop {
+  0%   { opacity: 0; transform: scale(0.7) translateY(8px); }
+  60%  { transform: scale(1.05) translateY(-2px); }
+  80%  { transform: scale(0.98) translateY(1px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.animate-spring-pop {
+  animation: spring-pop 0.32s cubic-bezier(0.34,1.56,0.64,1) forwards;
+}
+
+/* New message slide in from bottom */
+@keyframes slide-in-bottom {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-slide-in-bottom {
+  animation: slide-in-bottom 0.22s ease-out forwards;
+}
+
+/* Typing indicator dots */
+@keyframes typing-bounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30%            { transform: translateY(-6px); opacity: 1; }
+}
+
+.typing-dot-1 { animation: typing-bounce 1.2s ease-in-out infinite; }
+.typing-dot-2 { animation: typing-bounce 1.2s ease-in-out 0.2s infinite; }
+.typing-dot-3 { animation: typing-bounce 1.2s ease-in-out 0.4s infinite; }
+
+/* Online status breathe */
+@keyframes breathe {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.55; transform: scale(0.85); }
+}
+
+.animate-breathe {
+  animation: breathe 2.4s ease-in-out infinite;
+}
+
+/* Notification bell shake */
+@keyframes bell-shake {
+  0%,  100% { transform: rotate(0deg); }
+  10%        { transform: rotate(-12deg); }
+  20%        { transform: rotate(10deg); }
+  30%        { transform: rotate(-8deg); }
+  40%        { transform: rotate(6deg); }
+  50%        { transform: rotate(-4deg); }
+  60%        { transform: rotate(2deg); }
+  70%        { transform: rotate(0deg); }
+}
+
+.animate-bell-shake {
+  animation: bell-shake 0.7s cubic-bezier(0.36,0.07,0.19,0.97) both;
+}
+
+/* Badge coin flip */
+@keyframes coin-flip {
+  0%   { transform: perspective(400px) rotateY(0deg) scale(0.5); opacity: 0; }
+  40%  { transform: perspective(400px) rotateY(180deg) scale(1.1); opacity: 1; }
+  70%  { transform: perspective(400px) rotateY(360deg) scale(1); }
+  100% { transform: perspective(400px) rotateY(360deg) scale(1); opacity: 1; }
+}
+
+.animate-coin-flip {
+  animation: coin-flip 0.6s cubic-bezier(0.22,1,0.36,1) forwards;
+}
+
+/* Points float up */
+@keyframes float-up-fade {
+  0%   { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-40px) scale(0.85); }
+}
+
+.animate-float-up-fade {
+  animation: float-up-fade 1.4s ease-out forwards;
+}
+
+/* Streak flame flicker */
+@keyframes flame-flicker {
+  0%,100% { transform: scaleY(1) scaleX(1) rotate(-1deg); }
+  25%      { transform: scaleY(1.08) scaleX(0.96) rotate(1deg); }
+  50%      { transform: scaleY(0.95) scaleX(1.04) rotate(-1.5deg); }
+  75%      { transform: scaleY(1.05) scaleX(0.97) rotate(0.5deg); }
+}
+
+.animate-flame {
+  animation: flame-flicker 1.6s ease-in-out infinite;
+  transform-origin: bottom center;
+}
+
+/* Unread badge pulse every 3s */
+@keyframes badge-pulse {
+  0%, 85%, 100% { transform: scale(1); box-shadow: 0 0 0 0 hsl(var(--primary) / 0.4); }
+  90%            { transform: scale(1.12); box-shadow: 0 0 0 5px hsl(var(--primary) / 0); }
+}
+
+.animate-badge-pulse {
+  animation: badge-pulse 3s ease-in-out infinite;
+}
+
+/* RSVP checkmark draw */
+@keyframes checkmark-draw {
+  from { stroke-dashoffset: 20; }
+  to   { stroke-dashoffset: 0; }
+}
+
+.animate-checkmark path {
+  stroke-dasharray: 20;
+  stroke-dashoffset: 20;
+  animation: checkmark-draw 0.3s ease-out 0.1s forwards;
+}
+
+/* =============================================
+   SKELETON SHIMMER SWEEP
+   ============================================= */
+
+@keyframes shimmer-sweep {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--muted) / 0.3) 25%,
+    hsl(var(--muted) / 0.6) 50%,
+    hsl(var(--muted) / 0.3) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer-sweep 1.6s ease-in-out infinite;
+}
+
+/* =============================================
+   PAGE TRANSITION
+   ============================================= */
+
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes page-exit {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+.page-enter {
+  animation: page-enter 0.18s ease-out forwards;
+}
+
+/* =============================================
+   STAGGER UTILITIES (for dashboard cards etc.)
+   ============================================= */
+
+.stagger-1 { animation-delay: 0ms; }
+.stagger-2 { animation-delay: 80ms; }
+.stagger-3 { animation-delay: 160ms; }
+.stagger-4 { animation-delay: 240ms; }
+.stagger-5 { animation-delay: 320ms; }
+.stagger-6 { animation-delay: 400ms; }
+
+/* Stagger fade-in-up: start hidden, animate on mount */
+.stagger-fade {
+  opacity: 0;
+  animation: fade-in-up 0.4s ease-out forwards;
+}
+
+/* =============================================
+   MODAL ANIMATIONS
+   ============================================= */
+
+@keyframes modal-in {
+  from { opacity: 0; transform: scale(0.94) translateY(8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes modal-out {
+  from { opacity: 1; transform: scale(1); }
+  to   { opacity: 0; transform: scale(0.94); }
+}
+
+.animate-modal-in {
+  animation: modal-in 0.2s cubic-bezier(0.22,1,0.36,1) forwards;
+}
+
+/* =============================================
+   DROPDOWN SLIDE
+   ============================================= */
+
+@keyframes dropdown-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.animate-dropdown-in {
+  animation: dropdown-in 0.15s ease-out forwards;
+}
+
+/* =============================================
+   REACTION POP
+   ============================================= */
+
+@keyframes reaction-pop {
+  0%   { transform: scale(0); opacity: 0; }
+  70%  { transform: scale(1.3); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-reaction-pop {
+  animation: reaction-pop 0.25s cubic-bezier(0.34,1.56,0.64,1) forwards;
+}
+
+/* =============================================
+   TREE NODE EXPAND
+   ============================================= */
+
+@keyframes tree-expand {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.animate-tree-expand {
+  animation: tree-expand 0.2s ease-out forwards;
+}
+
+/* =============================================
+   SIDEBAR SLIDE IN FROM LEFT
+   ============================================= */
+
+@keyframes slide-in-left {
+  from { opacity: 0; transform: translateX(-14px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.animate-slide-in-left {
+  animation: slide-in-left 0.22s ease-out forwards;
+  opacity: 0;
+}
+
+/* =============================================
+   TOAST SLIDE IN FROM TOP RIGHT
+   ============================================= */
+
+@keyframes toast-slide-in {
+  from { opacity: 0; transform: translateX(24px) translateY(-6px); }
+  to   { opacity: 1; transform: translateX(0) translateY(0); }
+}
+
+.animate-toast-slide {
+  animation: toast-slide-in 0.25s cubic-bezier(0.22,1,0.36,1) forwards;
+}
+
+/* =============================================
+   LEVEL UP BURST
+   ============================================= */
+
+@keyframes level-up-burst {
+  0%   { opacity: 0; transform: scale(0.4) translateY(20px); }
+  50%  { opacity: 1; transform: scale(1.08) translateY(-4px); }
+  75%  { transform: scale(0.97) translateY(0); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.animate-level-up-burst {
+  animation: level-up-burst 0.45s cubic-bezier(0.22,1,0.36,1) forwards;
+}
+
+/* =============================================
+   JOIN TEAM AVATAR FLY-IN
+   ============================================= */
+
+@keyframes avatar-fly-in {
+  0%   { opacity: 0; transform: scale(0.5) translateY(-20px); }
+  60%  { transform: scale(1.15) translateY(2px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.animate-avatar-fly-in {
+  animation: avatar-fly-in 0.35s cubic-bezier(0.34,1.56,0.64,1) forwards;
+}
+
+/* =============================================
+   COUNTER ROLL UP
+   ============================================= */
+
+@keyframes count-blur-in {
+  from { opacity: 0; filter: blur(4px); transform: translateY(8px); }
+  to   { opacity: 1; filter: blur(0); transform: translateY(0); }
+}
+
+.animate-count-in {
+  animation: count-blur-in 0.4s ease-out forwards;
+}

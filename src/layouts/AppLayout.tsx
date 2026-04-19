@@ -172,7 +172,9 @@ const AppLayout = () => {
           </header>
 
           <main className={`flex-1 p-6 overflow-auto ${isMobile ? "pb-20" : ""}`}>
-            <Outlet />
+            <div key={location.key} className="page-enter h-full">
+              <Outlet />
+            </div>
           </main>
 
           {/* Mobile bottom tab bar */}

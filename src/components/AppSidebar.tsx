@@ -182,8 +182,12 @@ export function AppSidebar() {
           {!collapsed && <SidebarGroupLabel className="text-[10px]">Navigation</SidebarGroupLabel>}
           <SidebarGroupContent>
             <SidebarMenu>
-              {mainNavItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
+              {mainNavItems.map((item, i) => (
+                <SidebarMenuItem
+                  key={item.title}
+                  className="animate-slide-in-left"
+                  style={{ animationDelay: `${i * 35}ms` }}
+                >
                   <SidebarMenuButton asChild>
                     <NavItem item={item} />
                   </SidebarMenuButton>

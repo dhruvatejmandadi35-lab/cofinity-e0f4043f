@@ -5,13 +5,14 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { format, parseISO, isToday } from "date-fns";
 import {
   Send, Lock, Globe, Hash, Users, CalendarDays, Plus, Check, HelpCircle,
   BarChart2, FileText, Clipboard, Pin, MoreHorizontal, ChevronDown, ChevronUp,
-  History, Activity, Trophy, Settings, Cake, GraduationCap,
+  History, Activity, Trophy, Settings, Cake, GraduationCap, Smile, Edit2, Trash2, X,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -54,8 +55,18 @@ const TeamWorkspace = () => {
   const [pollQuestion, setPollQuestion] = useState("");
   const [pollOptions, setPollOptions] = useState(["", ""]);
   const [showWelcome, setShowWelcome] = useState(false);
+  const [typingUsers, setTypingUsers] = useState<{ user_id: string; name: string }[]>([]);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState("");
+  const [joinMessage, setJoinMessage] = useState("");
+  const [latestMsgTimestamp, setLatestMsgTimestamp] = useState<string | null>(null);
+  const [showEmojiPickerFor, setShowEmojiPickerFor] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const typingChannelRef = useRef<any>(null);
+  const typingTimeoutsRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const awardPoints = useAwardPoints();
+
+  const QUICK_EMOJIS = ["👍", "❤️", "😂", "🎉", "🔥", "😮"];
 
   const { data: team } = useQuery({
     queryKey: ["team", teamId],
@@ -179,6 +190,34 @@ const TeamWorkspace = () => {
     enabled: !!teamId && !!user && !!membership,
   });
 
+  const msgIds = (messages || []).map((m: any) => m.id);
+  const { data: reactions } = useQuery({
+    queryKey: ["reactions", teamId, msgIds.join(",")],
+    queryFn: async () => {
+      if (!msgIds.length) return [];
+      const { data } = await (supabase as any)
+        .from("message_reactions")
+        .select("*")
+        .in("message_id", msgIds);
+      return data || [];
+    },
+    enabled: !!membership && msgIds.length > 0,
+  });
+
+  const { data: joinRequest } = useQuery({
+    queryKey: ["join-request", teamId, user?.id],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("team_join_requests")
+        .select("*")
+        .eq("team_id", teamId!)
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!teamId && !!user && !membership,
+  });
+
   useEffect(() => {
     if (membership && welcomeShown === null) {
       const timer = setTimeout(() => setShowWelcome(true), 800);
@@ -197,18 +236,69 @@ const TeamWorkspace = () => {
         filter: `team_id=eq.${teamId}`,
       }, async (payload) => {
         const newMsg: any = payload.new;
-        // Skip thread replies in main chat
         if (newMsg.parent_id) return;
-        // Fetch profile for the new message author
         const { data: profile } = await supabase
           .from("profiles")
           .select("display_name, username")
           .eq("id", newMsg.user_id)
           .maybeSingle();
+        setLatestMsgTimestamp(newMsg.created_at);
         queryClient.setQueryData(["messages", teamId], (old: any[] = []) => {
           if (old.some((m) => m.id === newMsg.id)) return old;
           return [...old, { ...newMsg, profiles: profile }];
         });
+        // Clear typing indicator for this user
+        setTypingUsers(prev => prev.filter(u => u.user_id !== newMsg.user_id));
+      })
+      .on("postgres_changes", {
+        event: "UPDATE",
+        schema: "public",
+        table: "messages",
+        filter: `team_id=eq.${teamId}`,
+      }, () => {
+        queryClient.invalidateQueries({ queryKey: ["messages", teamId] });
+        queryClient.invalidateQueries({ queryKey: ["pinned-messages", teamId] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [teamId, membership, queryClient]);
+
+  // Typing broadcast channel
+  useEffect(() => {
+    if (!membership) return;
+    const channel = supabase
+      .channel(`typing:${teamId}`)
+      .on("broadcast", { event: "typing" }, (payload: any) => {
+        const { user_id, name } = payload.payload;
+        if (user_id === user?.id) return;
+        setTypingUsers(prev => {
+          if (prev.find(u => u.user_id === user_id)) return prev;
+          return [...prev, { user_id, name }];
+        });
+        clearTimeout(typingTimeoutsRef.current[user_id]);
+        typingTimeoutsRef.current[user_id] = setTimeout(() => {
+          setTypingUsers(prev => prev.filter(u => u.user_id !== user_id));
+        }, 3000);
+      })
+      .subscribe();
+    typingChannelRef.current = channel;
+    return () => {
+      supabase.removeChannel(channel);
+      typingChannelRef.current = null;
+    };
+  }, [teamId, membership, user?.id]);
+
+  // Realtime for reactions
+  useEffect(() => {
+    if (!membership) return;
+    const channel = supabase
+      .channel(`reactions-${teamId}`)
+      .on("postgres_changes", {
+        event: "*",
+        schema: "public",
+        table: "message_reactions",
+      }, () => {
+        queryClient.invalidateQueries({ queryKey: ["reactions", teamId] });
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
@@ -349,6 +439,83 @@ const TeamWorkspace = () => {
       toast({ title: "Member restored to active" });
     },
   });
+
+  const editMessage = useMutation({
+    mutationFn: async ({ msgId, content }: { msgId: string; content: string }) => {
+      const { error } = await (supabase as any)
+        .from("messages")
+        .update({ content, is_edited: true, edited_at: new Date().toISOString() })
+        .eq("id", msgId)
+        .eq("user_id", user!.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setEditingMessageId(null);
+      setEditContent("");
+      queryClient.invalidateQueries({ queryKey: ["messages", teamId] });
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const deleteMessage = useMutation({
+    mutationFn: async (msgId: string) => {
+      const { error } = await (supabase as any)
+        .from("messages")
+        .update({ is_deleted: true })
+        .eq("id", msgId)
+        .eq("user_id", user!.id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["messages", teamId] }),
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const toggleReaction = useMutation({
+    mutationFn: async ({ msgId, emoji }: { msgId: string; emoji: string }) => {
+      const existing = (reactions || []).find(
+        (r: any) => r.message_id === msgId && r.user_id === user!.id && r.emoji === emoji
+      );
+      if (existing) {
+        const { error } = await (supabase as any).from("message_reactions").delete().eq("id", existing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await (supabase as any).from("message_reactions").insert({
+          message_id: msgId, user_id: user!.id, emoji,
+        });
+        if (error && !error.message.includes("unique")) throw error;
+      }
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["reactions", teamId] }),
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const requestJoin = useMutation({
+    mutationFn: async (message?: string) => {
+      const { error } = await (supabase as any).from("team_join_requests").insert({
+        team_id: teamId!, user_id: user!.id, status: "pending", message,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["join-request", teamId, user?.id] });
+      toast({ title: "Request sent!", description: "Admins will review your request." });
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const handleTyping = () => {
+    if (!typingChannelRef.current) return;
+    const name =
+      user?.user_metadata?.display_name ||
+      user?.user_metadata?.full_name ||
+      user?.email?.split("@")[0] ||
+      "Someone";
+    typingChannelRef.current.send({
+      type: "broadcast",
+      event: "typing",
+      payload: { user_id: user!.id, name },
+    });
+  };
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
@@ -574,21 +741,73 @@ const TeamWorkspace = () => {
 
         {!membership ? (
           <div className="flex-1 flex items-center justify-center p-6">
-            <div className="text-center max-w-xs">
+            <div className="text-center max-w-xs animate-modal-in">
               <div className="w-16 h-16 rounded-2xl gradient-primary flex items-center justify-center mx-auto mb-4">
-                <Users className="w-8 h-8 text-white" />
+                {(team as any)?.privacy === "secret" ? <Lock className="w-8 h-8 text-white" /> : <Users className="w-8 h-8 text-white" />}
               </div>
-              <h3 className="text-lg font-bold text-foreground mb-2">Join to access</h3>
-              <p className="text-sm text-muted-foreground mb-5">
-                {team?.description || "Become a member to access the team workspace."}
-              </p>
-              <Button
-                className="gradient-primary text-white border-0 w-full"
-                onClick={() => joinTeam.mutate()}
-                disabled={joinTeam.isPending}
-              >
-                {joinTeam.isPending ? "Joining…" : "Join Team"}
-              </Button>
+
+              {(team as any)?.privacy === "secret" ? (
+                <>
+                  <h3 className="text-lg font-bold text-foreground mb-2">Invite Only</h3>
+                  <p className="text-sm text-muted-foreground mb-5">
+                    This team is secret. You need a direct invite from a member to join.
+                  </p>
+                  <div className="p-3 rounded-xl bg-muted/20 border border-border text-xs text-muted-foreground">
+                    Ask a current member to share the invite code with you.
+                  </div>
+                </>
+              ) : (team as any)?.privacy === "private" ? (
+                <>
+                  <h3 className="text-lg font-bold text-foreground mb-2">Request to Join</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    {team?.description || "This is a private team. Send a request to the admins."}
+                  </p>
+                  {joinRequest ? (
+                    <div className={`p-3 rounded-xl border text-sm font-medium ${
+                      (joinRequest as any).status === "pending"
+                        ? "bg-yellow-500/10 border-yellow-500/30 text-yellow-400"
+                        : (joinRequest as any).status === "rejected"
+                        ? "bg-destructive/10 border-destructive/30 text-destructive"
+                        : "bg-primary/10 border-primary/30 text-primary"
+                    }`}>
+                      {(joinRequest as any).status === "pending" && "⏳ Request pending review"}
+                      {(joinRequest as any).status === "rejected" && "✗ Request was declined"}
+                      {(joinRequest as any).status === "approved" && "✓ Request approved"}
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <Textarea
+                        placeholder="Optional: say why you'd like to join…"
+                        value={joinMessage}
+                        onChange={(e) => setJoinMessage(e.target.value)}
+                        className="bg-muted/20 text-sm resize-none"
+                        rows={3}
+                      />
+                      <Button
+                        className="gradient-primary text-white border-0 w-full"
+                        onClick={() => requestJoin.mutate(joinMessage || undefined)}
+                        disabled={requestJoin.isPending}
+                      >
+                        {requestJoin.isPending ? "Sending…" : "Request to Join"}
+                      </Button>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <h3 className="text-lg font-bold text-foreground mb-2">Join to access</h3>
+                  <p className="text-sm text-muted-foreground mb-5">
+                    {team?.description || "Become a member to access the team workspace."}
+                  </p>
+                  <Button
+                    className="gradient-primary text-white border-0 w-full"
+                    onClick={() => joinTeam.mutate()}
+                    disabled={joinTeam.isPending}
+                  >
+                    {joinTeam.isPending ? "Joining…" : "Join Team"}
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         ) : (
@@ -647,58 +866,154 @@ const TeamWorkspace = () => {
                       <p className="text-xs text-muted-foreground">Be the first to post in this team.</p>
                     </div>
                   )}
-                  {messages?.map((msg) => {
+                  {messages?.map((msg: any) => {
                     const isMe = msg.user_id === user?.id;
-                    const name =
-                      (msg as any).profiles?.display_name ||
-                      (msg as any).profiles?.username ||
-                      "Unknown";
+                    const name = msg.profiles?.display_name || msg.profiles?.username || "Unknown";
                     const initials = name.slice(0, 2).toUpperCase();
-                    const isPinned = (msg as any).is_pinned;
+                    const isPinned = msg.is_pinned;
+                    const isDeleted = msg.is_deleted;
+                    const isEdited = msg.is_edited;
+                    const isNewest = msg.created_at === latestMsgTimestamp;
+                    const msgReactions = (reactions || []).filter((r: any) => r.message_id === msg.id);
+                    const reactionGroups: Record<string, { count: number; mine: boolean }> = {};
+                    msgReactions.forEach((r: any) => {
+                      if (!reactionGroups[r.emoji]) reactionGroups[r.emoji] = { count: 0, mine: false };
+                      reactionGroups[r.emoji].count++;
+                      if (r.user_id === user?.id) reactionGroups[r.emoji].mine = true;
+                    });
+
                     return (
                       <div
                         key={msg.id}
-                        className={`flex items-start gap-2 group ${isMe ? "flex-row-reverse" : ""}`}
+                        className={`flex items-start gap-2 group relative ${isMe ? "flex-row-reverse" : ""} ${
+                          isNewest ? (isMe ? "animate-spring-pop" : "animate-slide-in-bottom") : ""
+                        }`}
                       >
                         {!isMe && (
                           <div
                             className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 mt-0.5"
-                            style={{
-                              background:
-                                "linear-gradient(135deg, hsl(220 72% 68%), hsl(252 58% 62%))",
-                            }}
+                            style={{ background: "linear-gradient(135deg, hsl(220 72% 68%), hsl(252 58% 62%))" }}
                           >
                             {initials}
                           </div>
                         )}
-                        <div
-                          className={`max-w-[72%] ${isMe ? "items-end" : "items-start"} flex flex-col`}
-                        >
+                        <div className={`max-w-[72%] ${isMe ? "items-end" : "items-start"} flex flex-col`}>
                           {!isMe && (
-                            <p className="text-[11px] font-semibold text-primary mb-0.5 px-1">
-                              {name}
-                            </p>
+                            <p className="text-[11px] font-semibold text-primary mb-0.5 px-1">{name}</p>
                           )}
-                          <div
-                            className={`px-3 py-2 rounded-xl text-sm ${
-                              isMe
-                                ? "bg-primary/20 border border-primary/30 text-foreground rounded-tr-sm"
-                                : "bg-muted/40 border border-border text-foreground rounded-tl-sm"
-                            } ${isPinned ? "border-primary/50" : ""}`}
-                          >
-                            {isPinned && <Pin className="w-3 h-3 text-primary inline mr-1" />}
-                            {msg.content}
-                          </div>
-                          <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <p className="text-[10px] text-muted-foreground mt-0.5 px-1">
+
+                          {/* Edit inline form */}
+                          {editingMessageId === msg.id ? (
+                            <div className="flex flex-col gap-1.5 min-w-[220px]">
+                              <Input
+                                value={editContent}
+                                onChange={(e) => setEditContent(e.target.value)}
+                                className="bg-muted/30 text-sm h-8"
+                                autoFocus
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" && !e.shiftKey) {
+                                    e.preventDefault();
+                                    if (editContent.trim()) editMessage.mutate({ msgId: msg.id, content: editContent });
+                                  }
+                                  if (e.key === "Escape") { setEditingMessageId(null); setEditContent(""); }
+                                }}
+                              />
+                              <div className="flex gap-1.5">
+                                <Button size="sm" className="h-6 text-[10px] gradient-primary text-white border-0 px-2" onClick={() => editMessage.mutate({ msgId: msg.id, content: editContent })} disabled={!editContent.trim() || editMessage.isPending}>Save</Button>
+                                <Button size="sm" variant="ghost" className="h-6 text-[10px] px-2" onClick={() => { setEditingMessageId(null); setEditContent(""); }}>Cancel</Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div
+                              className={`px-3 py-2 rounded-xl text-sm ${
+                                isDeleted
+                                  ? "bg-muted/20 border border-border text-muted-foreground/50 italic"
+                                  : isMe
+                                  ? "bg-primary/20 border border-primary/30 text-foreground rounded-tr-sm"
+                                  : "bg-muted/40 border border-border text-foreground rounded-tl-sm"
+                              } ${isPinned && !isDeleted ? "border-primary/50" : ""}`}
+                            >
+                              {isPinned && !isDeleted && <Pin className="w-3 h-3 text-primary inline mr-1" />}
+                              {isDeleted ? "Message deleted" : msg.content}
+                              {isEdited && !isDeleted && (
+                                <span className="text-[10px] text-muted-foreground/60 ml-1">(edited)</span>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Reaction bubbles */}
+                          {!isDeleted && Object.keys(reactionGroups).length > 0 && (
+                            <div className={`flex flex-wrap gap-1 mt-1 ${isMe ? "justify-end" : ""}`}>
+                              {Object.entries(reactionGroups).map(([emoji, { count, mine }]) => (
+                                <button
+                                  key={emoji}
+                                  onClick={() => toggleReaction.mutate({ msgId: msg.id, emoji })}
+                                  className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[11px] transition-colors animate-reaction-pop ${
+                                    mine
+                                      ? "bg-primary/20 border border-primary/40 text-primary"
+                                      : "bg-muted/40 border border-border hover:border-primary/30"
+                                  }`}
+                                >
+                                  {emoji} <span className="text-muted-foreground">{count}</span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Hover actions row */}
+                          <div className={`flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity mt-0.5 ${isMe ? "flex-row-reverse" : ""}`}>
+                            <p className="text-[10px] text-muted-foreground px-1">
                               {format(parseISO(msg.created_at), "h:mm a")}
                             </p>
-                            {isAdmin && (
+                            {/* Emoji reaction picker */}
+                            {!isDeleted && (
+                              <div className="relative">
+                                <button
+                                  onClick={() => setShowEmojiPickerFor(showEmojiPickerFor === msg.id ? null : msg.id)}
+                                  className="text-muted-foreground hover:text-foreground transition-colors"
+                                  title="React"
+                                >
+                                  <Smile className="w-3 h-3" />
+                                </button>
+                                {showEmojiPickerFor === msg.id && (
+                                  <div className={`absolute bottom-5 ${isMe ? "right-0" : "left-0"} flex gap-1 p-1.5 rounded-xl bg-muted/90 border border-border shadow-lg z-10 animate-dropdown-in`}>
+                                    {QUICK_EMOJIS.map((e) => (
+                                      <button
+                                        key={e}
+                                        onClick={() => { toggleReaction.mutate({ msgId: msg.id, emoji: e }); setShowEmojiPickerFor(null); }}
+                                        className="text-base hover:scale-125 transition-transform"
+                                      >
+                                        {e}
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                            {/* Edit/delete own messages */}
+                            {isMe && !isDeleted && (
+                              <>
+                                <button
+                                  onClick={() => { setEditingMessageId(msg.id); setEditContent(msg.content); }}
+                                  className="text-muted-foreground hover:text-foreground transition-colors"
+                                  title="Edit"
+                                >
+                                  <Edit2 className="w-3 h-3" />
+                                </button>
+                                <button
+                                  onClick={() => deleteMessage.mutate(msg.id)}
+                                  className="text-muted-foreground hover:text-destructive transition-colors"
+                                  title="Delete"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </button>
+                              </>
+                            )}
+                            {/* Admin pin */}
+                            {isAdmin && !isDeleted && (
                               <button
-                                onClick={() =>
-                                  pinMessage.mutate({ msgId: msg.id, pin: !isPinned })
-                                }
-                                className="text-[10px] text-muted-foreground hover:text-primary px-1 mt-0.5"
+                                onClick={() => pinMessage.mutate({ msgId: msg.id, pin: !isPinned })}
+                                className="text-muted-foreground hover:text-primary transition-colors"
                                 title={isPinned ? "Unpin" : "Pin message"}
                               >
                                 <Pin className="w-3 h-3" />
@@ -721,32 +1036,47 @@ const TeamWorkspace = () => {
                     </p>
                   </div>
                 ) : (
-                  <form
-                    onSubmit={handleSend}
-                    className="flex gap-2 px-4 py-3 border-t border-border"
-                  >
-                    <Input
-                      value={message}
-                      onChange={(e) => setMessage(e.target.value)}
-                      placeholder="Message # chat"
-                      className="flex-1 bg-muted/20"
-                      autoFocus={messages?.length === 0}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && !e.shiftKey) {
-                          e.preventDefault();
-                          if (message.trim()) sendMessage.mutate();
-                        }
-                      }}
-                    />
-                    <Button
-                      type="submit"
-                      size="icon"
-                      className="gradient-primary text-white border-0"
-                      disabled={!message.trim() || sendMessage.isPending}
+                  <>
+                    {/* Typing indicator */}
+                    {typingUsers.length > 0 && (
+                      <div className="px-4 pb-1 flex items-center gap-2">
+                        <div className="flex items-center gap-0.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-primary/60 typing-dot-1" />
+                          <span className="w-1.5 h-1.5 rounded-full bg-primary/60 typing-dot-2" />
+                          <span className="w-1.5 h-1.5 rounded-full bg-primary/60 typing-dot-3" />
+                        </div>
+                        <span className="text-[11px] text-muted-foreground">
+                          {typingUsers.map(u => u.name).join(", ")} {typingUsers.length === 1 ? "is" : "are"} typing…
+                        </span>
+                      </div>
+                    )}
+                    <form
+                      onSubmit={handleSend}
+                      className="flex gap-2 px-4 py-3 border-t border-border"
                     >
-                      <Send className="w-4 h-4" />
-                    </Button>
-                  </form>
+                      <Input
+                        value={message}
+                        onChange={(e) => { setMessage(e.target.value); handleTyping(); }}
+                        placeholder="Message # chat"
+                        className="flex-1 bg-muted/20"
+                        autoFocus={messages?.length === 0}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            if (message.trim()) sendMessage.mutate();
+                          }
+                        }}
+                      />
+                      <Button
+                        type="submit"
+                        size="icon"
+                        className="gradient-primary text-white border-0"
+                        disabled={!message.trim() || sendMessage.isPending}
+                      >
+                        <Send className="w-4 h-4" />
+                      </Button>
+                    </form>
+                  </>
                 )}
               </>
             )}
