@@ -64,7 +64,7 @@ export default function WelcomeModal({ teamId, open, onClose }: Props) {
   const { data: pinnedAnnouncements } = useQuery({
     queryKey: ["welcome-pinned", teamId],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("announcements")
         .select("*")
         .eq("team_id", teamId)
@@ -150,7 +150,7 @@ export default function WelcomeModal({ teamId, open, onClose }: Props) {
             </div>
           )}
 
-          {pinnedAnnouncements.length > 0 && (
+          {pinnedAnnouncements && pinnedAnnouncements.length > 0 && (
             <div>
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-1">
                 <Pin className="w-3 h-3" /> Pinned Resources

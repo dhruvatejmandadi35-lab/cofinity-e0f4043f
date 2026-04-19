@@ -18,7 +18,7 @@ export default function PublicTeamPage() {
   const { data: org } = useQuery({
     queryKey: ["public-org-for-team", orgSlug],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("organizations")
         .select("id, name, slug")
         .eq("slug", orgSlug!)
@@ -31,7 +31,7 @@ export default function PublicTeamPage() {
   const { data: team, isLoading } = useQuery({
     queryKey: ["public-team", teamSlug, org?.id],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("teams")
         .select("*, departments!inner(name, organization_id, organizations(name))")
         .eq("slug", teamSlug!)
