@@ -72,11 +72,11 @@ export default function MemberSpotlight({ teamId }: Props) {
   const calculateSpotlight = useMutation({
     mutationFn: async () => {
       setCalculating(true);
-      const { data: members } = await supabase
+      const { data: members } = await (supabase as any)
         .from("team_members")
         .select("user_id")
         .eq("team_id", teamId)
-        .eq("status" as any, "active");
+        .eq("status", "active");
 
       const userIds = (members || []).map((m: any) => m.user_id);
       if (!userIds.length) return null;

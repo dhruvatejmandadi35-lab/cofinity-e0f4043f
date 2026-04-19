@@ -37,13 +37,13 @@ export default function TeamLeaderboard({ teamId }: Props) {
   const { data: leaderboard, isLoading } = useQuery({
     queryKey: ["team-leaderboard", teamId, monthStart],
     queryFn: async () => {
-      const { data: members } = await supabase
+      const { data: members } = await (supabase as any)
         .from("team_members")
         .select("user_id")
         .eq("team_id", teamId)
-        .eq("status" as any, "active");
+        .eq("status", "active");
 
-      const userIds = [...new Set((members || []).map((m: any) => m.user_id))];
+      const userIds = [...new Set((members || []).map((m: any) => m.user_id as string))] as string[];
       if (!userIds.length) return [];
 
       const [pointsData, allTimeData, profiles] = await Promise.all([
