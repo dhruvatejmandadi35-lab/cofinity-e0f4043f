@@ -134,6 +134,40 @@ export default function PublicTeamPage() {
     );
   }
 
+  if ((team as any).privacy === "secret") {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="border-b border-border/40 px-6 py-3 flex items-center justify-between">
+          <Link to="/" className="text-sm font-bold gradient-text">Cofinity</Link>
+          {user ? (
+            <Button size="sm" onClick={() => navigate("/app")}>Dashboard</Button>
+          ) : (
+            <div className="flex gap-2">
+              <Button variant="ghost" size="sm" onClick={() => navigate("/auth")}>Sign in</Button>
+              <Button size="sm" onClick={() => navigate("/auth")}>Join</Button>
+            </div>
+          )}
+        </div>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center max-w-sm px-6">
+            <div className="w-16 h-16 rounded-2xl bg-muted/30 flex items-center justify-center mx-auto mb-4">
+              <span className="text-3xl">🔒</span>
+            </div>
+            <h2 className="text-xl font-bold mb-2">This team is private</h2>
+            <p className="text-sm text-muted-foreground mb-6">
+              This team's profile is not publicly visible. You'll need an invite code from an existing member to join.
+            </p>
+            {!user && (
+              <Button className="gradient-primary text-white border-0" onClick={() => navigate("/auth")}>
+                Sign in
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const dept = (team as any).departments;
 
   return (
@@ -182,6 +216,12 @@ export default function PublicTeamPage() {
             <p className="text-muted-foreground leading-relaxed">{team.description}</p>
           )}
 
+          {(team as any).privacy === "private" && !myMembership && (
+            <p className="text-xs text-amber-400/80 flex items-center gap-1.5">
+              🔒 This team reviews join requests — a member will approve you after you apply.
+            </p>
+          )}
+
           {myMembership ? (
             <Button
               className="gap-2"
@@ -196,7 +236,11 @@ export default function PublicTeamPage() {
               disabled={joinTeam.isPending}
             >
               <UserPlus className="w-4 h-4" />
-              {user ? "Join Team" : "Join (Sign up first)"}
+              {!user
+                ? "Join (Sign up first)"
+                : (team as any).privacy === "private"
+                ? "Request to Join"
+                : "Join Team"}
             </Button>
           )}
         </div>

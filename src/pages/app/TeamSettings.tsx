@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Settings, Palette, Smile, Quote, Calendar, Image, MessageSquare } from "lucide-react";
+import { ArrowLeft, Settings, Palette, Smile, Quote, Calendar, Image, MessageSquare, Globe, Lock, EyeOff } from "lucide-react";
 
 const PRESET_COLORS = [
   { name: "Indigo", value: "#6366f1" },
@@ -36,6 +36,7 @@ export default function TeamSettings() {
   const [foundedDate, setFoundedDate] = useState("");
   const [bannerUrl, setBannerUrl] = useState("");
   const [welcomeMessage, setWelcomeMessage] = useState("");
+  const [privacy, setPrivacy] = useState<"public" | "private" | "secret">("public");
 
   const { data: team, isLoading } = useQuery({
     queryKey: ["team-settings", teamId],
@@ -73,6 +74,7 @@ export default function TeamSettings() {
       setFoundedDate((team as any).founded_date || "");
       setBannerUrl((team as any).banner_url || "");
       setWelcomeMessage((team as any).custom_welcome_message || "");
+      setPrivacy((team as any).privacy || "public");
     }
   }, [team]);
 
@@ -87,6 +89,7 @@ export default function TeamSettings() {
           founded_date: foundedDate || null,
           banner_url: bannerUrl || null,
           custom_welcome_message: welcomeMessage || null,
+          privacy,
         })
         .eq("id", teamId!);
       if (error) throw error;
@@ -258,6 +261,38 @@ export default function TeamSettings() {
           <p className="text-xs text-muted-foreground">
             Shown to new members when they join · {welcomeMessage.length}/400
           </p>
+        </div>
+
+        {/* Visibility */}
+        <div className="space-y-2">
+          <Label className="flex items-center gap-1.5">
+            <Globe className="w-3.5 h-3.5 text-primary" /> Team Visibility
+          </Label>
+          <p className="text-xs text-muted-foreground">Controls who can find your team and whether it has a public profile page.</p>
+          <div className="space-y-2 pt-1">
+            {([
+              { value: "public", icon: Globe, label: "Public", desc: "Anyone can find your team, view its public page, and join freely." },
+              { value: "private", icon: Lock, label: "Private", desc: "Public profile page is visible, but joining requires your approval." },
+              { value: "secret", icon: EyeOff, label: "Secret (Invite Only)", desc: "No public page. Members can only join via your invite code." },
+            ] as const).map(({ value, icon: Icon, label, desc }) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setPrivacy(value)}
+                className={`w-full flex items-start gap-3 p-3 rounded-xl border text-left transition-colors ${
+                  privacy === value
+                    ? "border-primary/60 bg-primary/10"
+                    : "border-border hover:border-primary/30 bg-transparent"
+                }`}
+              >
+                <Icon className={`w-4 h-4 mt-0.5 flex-shrink-0 ${privacy === value ? "text-primary" : "text-muted-foreground"}`} />
+                <div>
+                  <p className={`text-sm font-semibold ${privacy === value ? "text-primary" : "text-foreground"}`}>{label}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
 
         <Button
