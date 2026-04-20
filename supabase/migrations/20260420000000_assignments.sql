@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS public.assignments (
   title TEXT NOT NULL,
   description TEXT,
   due_date TIMESTAMPTZ,
+  submission_type TEXT NOT NULL DEFAULT 'any' CHECK (submission_type IN ('text', 'link', 'any')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 

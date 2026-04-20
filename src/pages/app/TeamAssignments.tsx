@@ -19,6 +19,7 @@ export default function TeamAssignments({ isAdmin }: { isAdmin?: boolean }) {
   const [newTitle, setNewTitle] = useState("");
   const [newDesc, setNewDesc] = useState("");
   const [newDue, setNewDue] = useState("");
+  const [newSubType, setNewSubType] = useState<"text" | "link" | "any">("any");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [submitContent, setSubmitContent] = useState<Record<string, string>>({});
   const [submitLink, setSubmitLink] = useState<Record<string, string>>({});
@@ -73,6 +74,7 @@ export default function TeamAssignments({ isAdmin }: { isAdmin?: boolean }) {
         title: newTitle.trim(),
         description: newDesc.trim() || null,
         due_date: newDue ? new Date(newDue).toISOString() : null,
+        submission_type: newSubType,
       });
       if (error) throw error;
     },
@@ -82,16 +84,19 @@ export default function TeamAssignments({ isAdmin }: { isAdmin?: boolean }) {
       setNewTitle("");
       setNewDesc("");
       setNewDue("");
+      setNewSubType("any");
       toast({ title: "Assignment posted!" });
     },
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
   const submitWork = useMutation({
-    mutationFn: async (assignmentId: string) => {
+    mutationFn: async ({ assignmentId, subType }: { assignmentId: string; subType: string }) => {
       const content = submitContent[assignmentId] || "";
       const link = submitLink[assignmentId] || "";
-      if (!content.trim() && !link.trim()) throw new Error("Add text or a link to submit");
+      if (subType === "text" && !content.trim()) throw new Error("A text response is required for this assignment");
+      if (subType === "link" && !link.trim()) throw new Error("A link is required for this assignment");
+      if (subType === "any" && !content.trim() && !link.trim()) throw new Error("Add text or a link to submit");
       const { error } = await (supabase as any).from("assignment_submissions").upsert({
         assignment_id: assignmentId,
         user_id: user!.id,
@@ -176,6 +181,24 @@ export default function TeamAssignments({ isAdmin }: { isAdmin?: boolean }) {
               onChange={(e) => setNewDue(e.target.value)}
               className="bg-muted/20 text-sm h-8 flex-1"
             />
+          </div>
+          <div className="space-y-1.5">
+            <p className="text-[11px] text-muted-foreground font-medium">Submission type</p>
+            <div className="flex gap-2">
+              {(["any", "text", "link"] as const).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setNewSubType(t)}
+                  className={`px-3 py-1 rounded-lg text-xs border transition-colors ${
+                    newSubType === t
+                      ? "bg-primary/20 border-primary/50 text-primary font-semibold"
+                      : "border-border text-muted-foreground hover:border-primary/30"
+                  }`}
+                >
+                  {t === "any" ? "Text or Link" : t === "text" ? "Text only" : "Link only"}
+                </button>
+              ))}
+            </div>
           </div>
           <div className="flex gap-2">
             <Button
@@ -277,25 +300,29 @@ export default function TeamAssignments({ isAdmin }: { isAdmin?: boolean }) {
                 ) : (
                   <div className="space-y-2">
                     <p className="text-xs font-semibold text-foreground uppercase tracking-wider">Submit Your Work</p>
-                    <textarea
-                      placeholder="Write your response or notes here..."
-                      value={submitContent[assignment.id] || ""}
-                      onChange={(e) => setSubmitContent((p) => ({ ...p, [assignment.id]: e.target.value }))}
-                      className="w-full min-h-[80px] bg-muted/20 border border-border rounded-lg p-3 text-sm text-foreground resize-none focus:outline-none focus:ring-1 focus:ring-primary"
-                    />
+                    {(assignment.submission_type === "text" || assignment.submission_type === "any") && (
+                      <textarea
+                        placeholder={assignment.submission_type === "text" ? "Write your response here (required)..." : "Write your response or notes here..."}
+                        value={submitContent[assignment.id] || ""}
+                        onChange={(e) => setSubmitContent((p) => ({ ...p, [assignment.id]: e.target.value }))}
+                        className="w-full min-h-[80px] bg-muted/20 border border-border rounded-lg p-3 text-sm text-foreground resize-none focus:outline-none focus:ring-1 focus:ring-primary"
+                      />
+                    )}
+                    {(assignment.submission_type === "link" || assignment.submission_type === "any") && (
                     <div className="flex items-center gap-2">
                       <Link2 className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
                       <Input
-                        placeholder="Optional: paste a link (Google Doc, Drive, etc.)"
+                        placeholder={assignment.submission_type === "link" ? "Paste your link here (required)" : "Optional: paste a link (Google Doc, Drive, etc.)"}
                         value={submitLink[assignment.id] || ""}
                         onChange={(e) => setSubmitLink((p) => ({ ...p, [assignment.id]: e.target.value }))}
                         className="bg-muted/20 text-sm h-8 flex-1"
                       />
                     </div>
+                    )}
                     <Button
                       size="sm"
                       className="gradient-primary text-white border-0 h-7 text-xs gap-1"
-                      onClick={() => submitWork.mutate(assignment.id)}
+                      onClick={() => submitWork.mutate({ assignmentId: assignment.id, subType: assignment.submission_type || "any" })}
                       disabled={submitWork.isPending}
                     >
                       <Check className="w-3 h-3" /> Submit
