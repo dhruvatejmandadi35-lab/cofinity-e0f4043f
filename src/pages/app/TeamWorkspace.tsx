@@ -30,8 +30,9 @@ import StreakBadge from "@/components/StreakBadge";
 import { useAwardPoints } from "@/hooks/useAwardPoints";
 import TeamDocs from "./TeamDocs";
 import TaskBoard from "./TaskBoard";
+import TeamAssignments from "./TeamAssignments";
 
-type Tab = "chat" | "polls" | "docs" | "tasks" | "history" | "leaderboard";
+type Tab = "chat" | "docs" | "tasks" | "assignments" | "history" | "leaderboard";
 
 const roleBadge = (role: string) => {
   if (role === "owner") return "bg-yellow-500/20 text-yellow-300 border-yellow-500/40";
@@ -121,7 +122,7 @@ const TeamWorkspace = () => {
         .order("created_at", { ascending: true });
       return data || [];
     },
-    enabled: !!membership,
+    enabled: !!teamId && !!user,
   });
 
   const { data: pinnedMessages } = useQuery({
@@ -552,9 +553,9 @@ const TeamWorkspace = () => {
 
   const TABS: { id: Tab; icon: any; label: string }[] = [
     { id: "chat", icon: Hash, label: "Chat" },
-    { id: "polls", icon: BarChart2, label: "Polls" },
     { id: "docs", icon: FileText, label: "Docs" },
     { id: "tasks", icon: Clipboard, label: "Tasks" },
+    { id: "assignments", icon: HelpCircle, label: "Assignments" },
     { id: "leaderboard", icon: Trophy, label: "Leaderboard" },
     { id: "history", icon: History, label: "History" },
   ];
@@ -728,6 +729,17 @@ const TeamWorkspace = () => {
               Open Docs →
             </Button>
           )}
+          {activeTab === "chat" && isAdmin && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="ml-auto h-7 text-xs gap-1 text-primary"
+              title="Create Poll"
+              onClick={() => setShowPollForm(true)}
+            >
+              <BarChart2 className="w-3.5 h-3.5" /> Poll
+            </Button>
+          )}
           {isAdmin && (
             <Button
               size="sm"
@@ -859,6 +871,69 @@ const TeamWorkspace = () => {
 
                 {/* Weekly member spotlight */}
                 <MemberSpotlight teamId={teamId!} />
+
+                {/* Poll creation form (shown when admin clicks Poll button) */}
+                {showPollForm && (
+                  <div className="mx-4 mt-2 glass rounded-xl p-4 space-y-3 border border-primary/20">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-semibold text-primary uppercase tracking-wider flex items-center gap-1.5">
+                        <BarChart2 className="w-3.5 h-3.5" /> Create Poll
+                      </p>
+                      <button onClick={() => setShowPollForm(false)} className="text-muted-foreground hover:text-foreground">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    <Input
+                      autoFocus
+                      placeholder="Ask a question…"
+                      value={pollQuestion}
+                      onChange={(e) => setPollQuestion(e.target.value)}
+                      className="bg-muted/20 text-sm"
+                    />
+                    <div className="space-y-1.5">
+                      {pollOptions.map((opt, i) => (
+                        <Input
+                          key={i}
+                          placeholder={`Option ${i + 1}`}
+                          value={opt}
+                          onChange={(e) => {
+                            const next = [...pollOptions];
+                            next[i] = e.target.value;
+                            setPollOptions(next);
+                          }}
+                          className="bg-muted/20 text-sm h-8"
+                        />
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-xs h-7 gap-1 text-primary"
+                        onClick={() => setPollOptions([...pollOptions, ""])}
+                      >
+                        <Plus className="w-3 h-3" /> Add option
+                      </Button>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        className="gradient-primary text-white border-0 h-7 text-xs"
+                        onClick={() => createPoll.mutate()}
+                        disabled={
+                          createPoll.isPending ||
+                          !pollQuestion.trim() ||
+                          pollOptions.filter((o) => o.trim()).length < 2
+                        }
+                      >
+                        Post Poll
+                      </Button>
+                      <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setShowPollForm(false)}>
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
                   {messages?.length === 0 && (
@@ -1026,6 +1101,56 @@ const TeamWorkspace = () => {
                       </div>
                     );
                   })}
+                  {/* Active polls inline in chat */}
+                  {(polls?.length ?? 0) > 0 && (
+                    <div className="space-y-3 pt-2 border-t border-border/50 mt-2">
+                      <p className="text-[10px] text-primary uppercase tracking-wider font-semibold flex items-center gap-1">
+                        <BarChart2 className="w-3 h-3" /> Active Polls
+                      </p>
+                      {polls?.map((poll: any) => {
+                        const totalVotes = pollVotes?.filter((v: any) => v.poll_id === poll.id).length || 0;
+                        const myVote = pollVotes?.find((v: any) => v.poll_id === poll.id && v.user_id === user?.id);
+                        return (
+                          <div key={poll.id} className="rounded-xl border border-border bg-muted/20 p-3 space-y-2">
+                            <div>
+                              <p className="text-sm font-semibold text-foreground">{poll.question}</p>
+                              <p className="text-[11px] text-muted-foreground mt-0.5">
+                                by {poll.profiles?.display_name} · {totalVotes} vote{totalVotes !== 1 ? "s" : ""}
+                              </p>
+                            </div>
+                            <div className="space-y-1.5">
+                              {poll.poll_options
+                                ?.sort((a: any, b: any) => a.position - b.position)
+                                .map((opt: any) => {
+                                  const optVotes = pollVotes?.filter((v: any) => v.option_id === opt.id).length || 0;
+                                  const pct = totalVotes > 0 ? Math.round((optVotes / totalVotes) * 100) : 0;
+                                  const isMyVote = myVote?.option_id === opt.id;
+                                  return (
+                                    <button
+                                      key={opt.id}
+                                      onClick={() => vote.mutate({ pollId: poll.id, optionId: opt.id })}
+                                      className={`w-full relative rounded-lg border text-left p-2 transition-colors overflow-hidden ${
+                                        isMyVote ? "border-primary/50 text-primary" : "border-border hover:border-primary/30 text-foreground"
+                                      }`}
+                                    >
+                                      <div
+                                        className={`absolute inset-0 ${isMyVote ? "bg-primary/10" : "bg-muted/30"}`}
+                                        style={{ width: `${pct}%`, transition: "width 0.3s ease" }}
+                                      />
+                                      <div className="relative flex items-center justify-between">
+                                        <span className="text-xs font-medium">{opt.label}</span>
+                                        <span className="text-xs text-muted-foreground">{pct}%</span>
+                                      </div>
+                                    </button>
+                                  );
+                                })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
                   <div ref={messagesEndRef} />
                 </div>
 
@@ -1083,136 +1208,6 @@ const TeamWorkspace = () => {
               </>
             )}
 
-            {/* ── POLLS TAB ── */}
-            {activeTab === "polls" && (
-              <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-semibold text-foreground">Team Polls</p>
-                  <Button
-                    size="sm"
-                    className="gradient-primary text-white border-0 h-7 text-xs gap-1"
-                    onClick={() => setShowPollForm(!showPollForm)}
-                  >
-                    <Plus className="w-3.5 h-3.5" /> New Poll
-                  </Button>
-                </div>
-
-                {showPollForm && (
-                  <div className="glass rounded-xl p-4 space-y-3">
-                    <Input
-                      placeholder="Ask a question…"
-                      value={pollQuestion}
-                      onChange={(e) => setPollQuestion(e.target.value)}
-                      className="bg-muted/20 text-sm"
-                    />
-                    <div className="space-y-1.5">
-                      {pollOptions.map((opt, i) => (
-                        <Input
-                          key={i}
-                          placeholder={`Option ${i + 1}`}
-                          value={opt}
-                          onChange={(e) => {
-                            const next = [...pollOptions];
-                            next[i] = e.target.value;
-                            setPollOptions(next);
-                          }}
-                          className="bg-muted/20 text-sm h-8"
-                        />
-                      ))}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-xs h-7 gap-1 text-primary"
-                        onClick={() => setPollOptions([...pollOptions, ""])}
-                      >
-                        <Plus className="w-3 h-3" /> Add option
-                      </Button>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        className="gradient-primary text-white border-0 h-7 text-xs"
-                        onClick={() => createPoll.mutate()}
-                        disabled={
-                          createPoll.isPending ||
-                          !pollQuestion.trim() ||
-                          pollOptions.filter((o) => o.trim()).length < 2
-                        }
-                      >
-                        Create Poll
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-7 text-xs"
-                        onClick={() => setShowPollForm(false)}
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  </div>
-                )}
-
-                {polls?.length === 0 && !showPollForm && (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <BarChart2 className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                    <p className="text-sm">No polls yet</p>
-                    <p className="text-xs mt-1 opacity-60">Create a poll to gather team input</p>
-                  </div>
-                )}
-
-                {polls?.map((poll: any) => {
-                  const totalVotes =
-                    pollVotes?.filter((v: any) => v.poll_id === poll.id).length || 0;
-                  const myVote = pollVotes?.find(
-                    (v: any) => v.poll_id === poll.id && v.user_id === user?.id
-                  );
-                  return (
-                    <div key={poll.id} className="glass rounded-xl p-4 space-y-3">
-                      <div>
-                        <p className="text-sm font-semibold text-foreground">{poll.question}</p>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">
-                          by {poll.profiles?.display_name} · {totalVotes} votes
-                        </p>
-                      </div>
-                      <div className="space-y-2">
-                        {poll.poll_options
-                          ?.sort((a: any, b: any) => a.position - b.position)
-                          .map((opt: any) => {
-                            const optVotes =
-                              pollVotes?.filter((v: any) => v.option_id === opt.id).length || 0;
-                            const pct = totalVotes > 0 ? Math.round((optVotes / totalVotes) * 100) : 0;
-                            const isMyVote = myVote?.option_id === opt.id;
-                            return (
-                              <button
-                                key={opt.id}
-                                onClick={() => vote.mutate({ pollId: poll.id, optionId: opt.id })}
-                                className={`w-full relative rounded-lg border text-left p-2 transition-colors overflow-hidden ${
-                                  isMyVote
-                                    ? "border-primary/50 text-primary"
-                                    : "border-border hover:border-primary/30 text-foreground"
-                                }`}
-                              >
-                                <div
-                                  className={`absolute inset-0 ${isMyVote ? "bg-primary/10" : "bg-muted/20"}`}
-                                  style={{ width: `${pct}%`, transition: "width 0.3s ease" }}
-                                />
-                                <div className="relative flex items-center justify-between">
-                                  <span className="text-xs font-medium">{opt.label}</span>
-                                  <span className="text-xs text-muted-foreground">{pct}%</span>
-                                </div>
-                              </button>
-                            );
-                          })}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
             {/* ── DOCS TAB ── */}
             {activeTab === "docs" && (
               <div className="flex-1 overflow-y-auto p-4">
@@ -1224,6 +1219,13 @@ const TeamWorkspace = () => {
             {activeTab === "tasks" && (
               <div className="flex-1 overflow-auto p-4">
                 <TaskBoard />
+              </div>
+            )}
+
+            {/* ── ASSIGNMENTS TAB ── */}
+            {activeTab === "assignments" && (
+              <div className="flex-1 overflow-y-auto p-4">
+                <TeamAssignments isAdmin={isAdmin} />
               </div>
             )}
 
@@ -1442,9 +1444,6 @@ const TeamWorkspace = () => {
     </div>
   );
 
-  function setActiveTabLocal(tab: Tab) {
-    setActiveTab(tab);
-  }
 };
 
 export default TeamWorkspace;

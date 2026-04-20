@@ -54,6 +54,10 @@ const EventCreate = () => {
         title: title.trim(),
         description: description.trim() || null,
         date_time: new Date(startDateTime).toISOString(),
+        end_date_time: endDateTime ? new Date(endDateTime).toISOString() : null,
+        location: !isVirtual && location.trim() ? location.trim() : null,
+        is_virtual: isVirtual,
+        meeting_link: isVirtual && meetingLink.trim() ? meetingLink.trim() : null,
         is_public: isPublic,
         created_by: user!.id,
       } as any).select("id").single();
