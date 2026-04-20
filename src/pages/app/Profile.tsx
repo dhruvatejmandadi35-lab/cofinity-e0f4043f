@@ -132,8 +132,8 @@ const Profile = () => {
   const isBirthdayToday = () => {
     if (!birthday) return false;
     const today = new Date();
-    const bday = new Date(birthday);
-    return today.getMonth() === bday.getMonth() && today.getDate() === bday.getDate();
+    const [, mm, dd] = birthday.split("-").map(Number);
+    return today.getMonth() + 1 === mm && today.getDate() === dd;
   };
 
   return (
