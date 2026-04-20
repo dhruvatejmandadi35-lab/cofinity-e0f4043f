@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Users, CalendarDays, Globe, Building2, ArrowLeft } from "lucide-react";
+import { Users, CalendarDays, Globe, Building2, ArrowLeft, Crown } from "lucide-react";
 import { format, parseISO } from "date-fns";
 
 export default function PublicOrgPage() {
@@ -18,7 +18,7 @@ export default function PublicOrgPage() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("organizations")
-        .select("*")
+        .select("*, profiles:owner_id(display_name, username)")
         .eq("slug", orgSlug!)
         .single();
       if (error) throw error;
@@ -43,9 +43,9 @@ export default function PublicOrgPage() {
   const { data: departments } = useQuery({
     queryKey: ["public-org-departments", org?.id],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("departments")
-        .select("*, teams(id, name, slug, description, privacy)")
+        .select("*, profiles:manager_id(display_name, username), teams(id, name, slug, description, privacy, profiles:owner_id(display_name, username))")
         .eq("organization_id", org!.id);
       return (data || []).map((d: any) => ({
         ...d,
@@ -158,6 +158,12 @@ export default function PublicOrgPage() {
                   <Users className="w-3.5 h-3.5" /> {memberCount.toLocaleString()} members
                 </span>
               )}
+              {(org as any).profiles?.display_name || (org as any).profiles?.username ? (
+                <span className="text-sm text-white/70 flex items-center gap-1">
+                  <Crown className="w-3.5 h-3.5" />
+                  {(org as any).profiles.display_name || (org as any).profiles.username}
+                </span>
+              ) : null}
             </div>
           </div>
         </div>
@@ -219,28 +225,48 @@ export default function PublicOrgPage() {
             <div className="space-y-6">
               {departments
                 .filter((d: any) => d.teams.length > 0)
-                .map((dept: any) => (
-                  <div key={dept.id}>
-                    <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-2">{dept.name}</p>
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      {dept.teams.map((team: any) => (
-                        <Link
-                          key={team.id}
-                          to={`/org/${orgSlug}/team/${team.slug || team.id}`}
-                          className="glass rounded-lg p-3 hover:border-primary/40 transition-colors border border-border/40 flex items-center justify-between gap-2"
-                        >
-                          <div>
-                            <p className="font-medium text-sm">{team.name}</p>
-                            {team.description && (
-                              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{team.description}</p>
-                            )}
-                          </div>
-                          <Globe className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                        </Link>
-                      ))}
+                .map((dept: any) => {
+                  const manager = dept.profiles?.display_name || dept.profiles?.username;
+                  return (
+                    <div key={dept.id}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">{dept.name}</p>
+                        {manager && (
+                          <span className="text-[11px] text-muted-foreground/60 flex items-center gap-1">
+                            <Crown className="w-2.5 h-2.5" /> {manager}
+                          </span>
+                        )}
+                      </div>
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        {dept.teams.map((team: any) => {
+                          const teamOwner = team.profiles?.display_name || team.profiles?.username;
+                          return (
+                            <Link
+                              key={team.id}
+                              to={`/org/${orgSlug}/team/${team.slug || team.id}`}
+                              className="glass rounded-lg p-3 hover:border-primary/40 transition-colors border border-border/40"
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0">
+                                  <p className="font-medium text-sm">{team.name}</p>
+                                  {team.description && (
+                                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{team.description}</p>
+                                  )}
+                                </div>
+                                <Globe className="w-3.5 h-3.5 text-muted-foreground shrink-0 mt-0.5" />
+                              </div>
+                              {teamOwner && (
+                                <p className="text-[11px] text-muted-foreground/60 mt-1.5 flex items-center gap-1">
+                                  <Crown className="w-2.5 h-2.5" /> {teamOwner}
+                                </p>
+                              )}
+                            </Link>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
             </div>
           </section>
         )}

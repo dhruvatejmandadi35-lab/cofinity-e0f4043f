@@ -40,9 +40,9 @@ const PublicExplore = () => {
   const { data: orgs, isLoading: orgsLoading } = useQuery({
     queryKey: ["public-orgs"],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("organizations")
-        .select("id, name, type")
+        .select("id, name, type, description, profiles:owner_id(display_name, username)")
         .order("created_at");
       return data || [];
     },
@@ -170,8 +170,11 @@ const PublicExplore = () => {
                       </p>
                     )}
                     <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/50">
-                      <span className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Globe className="w-3 h-3" /> Public
+                      <span className="text-xs text-muted-foreground truncate max-w-[60%]">
+                        {(org as any).profiles?.display_name || (org as any).profiles?.username
+                          ? `by ${(org as any).profiles.display_name || (org as any).profiles.username}`
+                          : <span className="flex items-center gap-1"><Globe className="w-3 h-3" /> Public</span>
+                        }
                       </span>
                       <span className="text-xs text-primary flex items-center gap-1 group-hover:gap-2 transition-all">
                         View <ArrowRight className="w-3 h-3" />

@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Users, CalendarDays, ArrowLeft, UserPlus } from "lucide-react";
+import { Users, CalendarDays, ArrowLeft, UserPlus, Crown } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
@@ -33,7 +33,7 @@ export default function PublicTeamPage() {
     queryFn: async () => {
       const { data } = await (supabase as any)
         .from("teams")
-        .select("*, departments!inner(name, organization_id, organizations(name))")
+        .select("*, profiles:owner_id(display_name, username), departments!inner(name, organization_id, organizations(name, profiles:owner_id(display_name, username)))")
         .eq("slug", teamSlug!)
         .eq("departments.organization_id", org!.id)
         .single();
@@ -187,12 +187,21 @@ export default function PublicTeamPage() {
 
       <div className="max-w-3xl mx-auto px-6 py-8 space-y-8">
         {/* Breadcrumb */}
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
           <Link to={`/org/${orgSlug}`} className="hover:text-foreground transition-colors">
             {org?.name || orgSlug}
           </Link>
           <span>/</span>
           <span className="text-foreground">{team.name}</span>
+          {(() => {
+            const orgOwner = (team as any).departments?.organizations?.profiles?.display_name
+              || (team as any).departments?.organizations?.profiles?.username;
+            return orgOwner ? (
+              <span className="ml-auto text-xs text-muted-foreground/60 flex items-center gap-1">
+                <Crown className="w-3 h-3" /> Org: {orgOwner}
+              </span>
+            ) : null;
+          })()}
         </div>
 
         {/* Header */}
@@ -202,6 +211,12 @@ export default function PublicTeamPage() {
               <h1 className="text-3xl font-bold">{team.name}</h1>
               {dept?.name && (
                 <p className="text-sm text-muted-foreground mt-0.5">{dept.name}</p>
+              )}
+              {((team as any).profiles?.display_name || (team as any).profiles?.username) && (
+                <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                  <Crown className="w-3 h-3 text-yellow-400" />
+                  {(team as any).profiles.display_name || (team as any).profiles.username}
+                </p>
               )}
             </div>
             <div className="flex items-center gap-2">
